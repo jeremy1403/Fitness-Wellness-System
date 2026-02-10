@@ -1,0 +1,65 @@
+# =============================================================================
+# Root .gitignore — Monorepo (Laravel backend + Next.js frontend)
+# =============================================================================
+
+# ---- Environment & secrets ----
+.env
+.env.*
+!.env.example
+
+# ---- OS generated ----
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ---- IDE / Editors ----
+.idea/
+.vscode/
+.fleet/
+*.sublime-project
+*.sublime-workspace
+
+# ---- Backend (Laravel / PHP) ----
+backend/vendor/
+backend/node_modules/
+backend/.phpunit.cache
+backend/.phpunit.result.cache
+backend/public/build
+backend/public/hot
+backend/public/storage
+backend/storage/*.key
+backend/Homestead.json
+backend/Homestead.yaml
+backend/auth.json
+backend/npm-debug.log
+backend/yarn-error.log
+
+# ---- Frontend (Next.js / Node) ----
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/coverage/
+frontend/.pnp
+frontend/.pnp.*
+frontend/.yarn/*
+!frontend/.yarn/patches
+!frontend/.yarn/plugins
+!frontend/.yarn/releases
+!frontend/.yarn/versions
+frontend/.vercel
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.pnpm-debug.log*
+frontend/*.pem
+
+# ---- Docker ----
+docker-compose.override.yml
+
+# ---- Misc ----
+*.log

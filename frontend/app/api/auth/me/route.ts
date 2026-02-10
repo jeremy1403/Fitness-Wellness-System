@@ -1,0 +1,24 @@
+import { NextResponse, type NextRequest } from "next/server";
+
+import { backendJson } from "@/app/api/auth/_helpers";
+import { TOKEN_COOKIE } from "@/lib/auth/cookies";
+import type { UserResponse } from "@/types/auth";
+
+export async function GET(request: NextRequest) {
+  const token = request.cookies.get(TOKEN_COOKIE)?.value;
+  if (!token) {
+    return NextResponse.json(
+      { message: "Unauthenticated." },
+      { status: 401 },
+    );
+  }
+
+  const { res, data } = await backendJson<UserResponse>("/auth/me", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  return NextResponse.json(
+    data ?? { message: `Request failed (${res.status})` },
+    { status: res.status },
+  );
+}
