@@ -5,7 +5,15 @@ import { backendJson, setAuthCookies } from "@/app/api/auth/_helpers";
 import type { AuthResponse } from "@/types/auth";
 
 export async function POST(request: NextRequest) {
-  const payload = await request.json();
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return NextResponse.json(
+      { message: "Invalid JSON payload." },
+      { status: 400 },
+    );
+  }
 
   const { res, data } = await backendJson<AuthResponse>("/auth/login", {
     method: "POST",

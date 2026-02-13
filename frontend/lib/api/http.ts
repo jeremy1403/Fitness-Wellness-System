@@ -35,7 +35,7 @@ export async function http<T>(
   }
 
   const resolvedBase =
-    baseUrl ?? (typeof window === "undefined" ? appConfig.api.baseUrl : DEFAULT_BASE);
+    baseUrl ?? (typeof window === "undefined" ? appConfig.api.backendUrl : DEFAULT_BASE);
   const resolvedEndpoint =
     typeof window === "undefined"
       ? `${resolvedBase}/api/${appConfig.api.version}${endpoint}`

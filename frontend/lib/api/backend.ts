@@ -2,7 +2,7 @@ import "server-only";
 
 import { appConfig } from "@/lib/config";
 
-const API_BASE = `${appConfig.api.baseUrl}/api/${appConfig.api.version}`;
+const API_BASE = `${appConfig.api.backendUrl}/api/${appConfig.api.version}`;
 
 export function backendUrl(path: string) {
   const normalized = path.startsWith("/") ? path : `/${path}`;

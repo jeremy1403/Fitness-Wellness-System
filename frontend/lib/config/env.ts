@@ -8,6 +8,8 @@ if (!apiBaseUrl) {
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   apiBaseUrl: normalizeBaseUrl(apiBaseUrl),
+  /** Server-only URL for container-to-container calls (falls back to apiBaseUrl) */
+  backendUrl: normalizeBaseUrl(process.env.BACKEND_URL ?? apiBaseUrl),
 } as const;
 
 export const isProd = env.nodeEnv === "production";

@@ -12,12 +12,27 @@ export async function backendJson<T>(
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
 
-  const res = await fetch(backendUrl(path), {
-    ...init,
-    headers,
-  });
+  const url = backendUrl(path);
 
-  return { res, data: await readJson<T>(res) };
+  try {
+    const res = await fetch(url, {
+      ...init,
+      headers,
+    });
+
+    return { res, data: await readJson<T>(res) };
+  } catch (error) {
+    const detail =
+      error instanceof Error ? error.message : "Unknown network error";
+    const fallback = {
+      message:
+        "Unable to reach backend API. Check NEXT_PUBLIC_API_BASE_URL and backend server status.",
+      error: detail,
+      url,
+    } as T;
+
+    return { res: new Response(null, { status: 502 }), data: fallback };
+  }
 }
 
 export function setAuthCookies(
