@@ -1,3 +1,5 @@
+"use client";
+
 import type { ReactNode } from "react";
 import SidebarShell from "@/components/layout/SidebarShell";
 import { adminNav } from "@/lib/navigation";
