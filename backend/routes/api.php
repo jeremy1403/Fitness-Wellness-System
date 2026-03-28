@@ -2,7 +2,9 @@
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\Api\FitnessClassController;
+use App\Http\Controllers\Api\ClassScheduleController;
+//use App\Http\Controllers\Api\TrainerController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -20,7 +22,16 @@ Route::prefix('v1')->group(function () {
 
     // Module 2: Fitness Classes & Schedules
     // Route::prefix('classes')->group(base_path('routes/api/classes.php'));
-
+    Route::apiResource('classes', FitnessClassController::class);
+    Route::prefix('v1')->group(function () {
+        // 排课 CRUD
+        Route::apiResource('schedules', ClassScheduleController::class);
+        
+        // 教练列表 (用于前端下拉框)
+        Route::get('trainers', function() {
+            return \App\Models\Trainer::with('user')->get();
+        });
+    });
     // Module 3: Bookings
     // Route::prefix('bookings')->group(base_path('routes/api/bookings.php'));
 
