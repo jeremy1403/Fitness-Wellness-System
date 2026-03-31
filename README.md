@@ -53,6 +53,12 @@ Services will be available at:
 
 ## Local Development (without Docker)
 
+### Root Folder
+
+```bash
+cp .env.example .env
+```
+
 ### Backend
 
 ```bash
@@ -69,7 +75,7 @@ php artisan serve   # http://localhost:8000
 ```bash
 cd frontend
 npm install
-cp .env.local.example .env.local   # set NEXT_PUBLIC_API_BASE_URL
+cp .env.example .env.local         # set NEXT_PUBLIC_API_BASE_URL
 npm run dev                        # http://localhost:3000
 ```
 
