@@ -229,3 +229,7 @@ Always use the best practices for Next.js (App Router) and coding. think hard an
 4. Update README.md
 
 Always use the best practices for Next.js (App Router) and coding. think hard and use context7
+
+
+##
+I want you to do an update for frontend UI with a new  
