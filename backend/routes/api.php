@@ -27,6 +27,13 @@ Route::prefix('v1')->group(function () {
     // Module 4: Memberships & Payments
     // Route::prefix('memberships')->group(base_path('routes/api/memberships.php'));
 
+    // Module 5: External Health Integration & Analytics
+    // Protected by Rate Limiting and HMAC Signature Verification stubs
+    Route::prefix('analytics')
+        ->middleware(['throttle:60,1', 'verify.hmac.stub'])
+        ->group(function () {
+            Route::get('/user-summary', [\App\Http\Controllers\Api\V1\AnalyticsController::class, 'getUserSummary']);
+        });
     // Health check (includes DB connectivity)
     Route::get('/health', function () {
         $dbOk = false;
