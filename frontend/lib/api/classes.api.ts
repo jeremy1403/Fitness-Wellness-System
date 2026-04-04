@@ -5,6 +5,8 @@ export interface FitnessClassData {
   description: string;
   duration_minutes: number;
   capacity?: number;
+  setup_mode?: 'simple' | 'automated';
+  class_type?: 'Yoga' | 'Spin' | 'HIIT' | 'General';
 }
 
 // 获取列表 (Read)
@@ -21,11 +23,11 @@ export const getFitnessClasses = async () => {
 // 创建课程 (Create)
 export const createFitnessClass = async (data: FitnessClassData) => {
   // 注意：如果你已经在 Laravel Middleware 里放行了 api/*，下面这步可以注释掉
-  await fetch(backendUrl("/sanctum/csrf-cookie"), {
-    method: "GET",
-    credentials: "include",
-    headers: { "Accept": "application/json" },
-  });
+  // await fetch(backendUrl("/sanctum/csrf-cookie"), {
+  //   method: "GET",
+  //   credentials: "include",
+  //   headers: { "Accept": "application/json" },
+  // });
 
   const url = backendUrl("/classes");
   const response = await fetch(url, {

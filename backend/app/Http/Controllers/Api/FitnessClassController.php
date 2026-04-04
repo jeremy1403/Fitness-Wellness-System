@@ -3,34 +3,30 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\FitnessClass; 
-use Illuminate\Http\Request;
+use App\Http\Requests\Classes\StoreFitnessClassRequest; // 新增：自定义 Request
+use App\Services\FitnessClassService;
 use Illuminate\Http\JsonResponse;
+use App\Models\FitnessClass;
+
 
 class FitnessClassController extends Controller
 {
-    /**
-     * 获取所有课程列表
-     */
+    // 使用构造函数注入 Service
+    public function __construct(
+        protected FitnessClassService $fitnessClassService
+    ) {}
+
     public function index(): JsonResponse
     {
-        // 建议加上 latest()，这样新创建的课会显示在最上面
-        $classes = FitnessClass::latest()->get();
+        // 统一通过 Service 获取数据
+        $classes = $this->fitnessClassService->getAllClasses();
         return response()->json($classes);
     }
 
-    /**
-     * 保存新课程
-     */
-    public function store(Request $request): JsonResponse
+    public function store(StoreFitnessClassRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'duration_minutes' => 'required|integer|min:15',
-        ]);
-
-        $fitnessClass = FitnessClass::create($validated);
+        // $request->validated() 确保只获取验证过的数据，防止批量赋值漏洞
+        $fitnessClass = $this->fitnessClassService->createClass($request->validated());
 
         return response()->json([
             'message' => 'Created successfully!',
@@ -38,21 +34,14 @@ class FitnessClassController extends Controller
         ], 201);
     }
 
-    /**
-     * 👇 新增：删除课程 (用于配合前端的 Delete 按钮)
-     */
-    public function destroy($id): JsonResponse
+    public function destroy(int $id): JsonResponse
     {
-        $fitnessClass = FitnessClass::find($id);
+        $deleted = $this->fitnessClassService->deleteClass($id);
 
-        if (!$fitnessClass) {
-            return response()->json(['message' => 'Class not found'], 404);
+        if (!$deleted) {
+            return response()->json(['message' => 'Class not found or could not be deleted'], 404);
         }
 
-        $fitnessClass->delete();
-
-        return response()->json([
-            'message' => 'Class deleted successfully!'
-        ], 200);
+        return response()->json(['message' => 'Class deleted successfully!'], 200);
     }
 }

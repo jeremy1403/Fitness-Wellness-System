@@ -21,17 +21,11 @@ Route::prefix('v1')->group(function () {
     Route::prefix('auth')->group(base_path('routes/api/auth.php'));
 
     // Module 2: Fitness Classes & Schedules
-    // Route::prefix('classes')->group(base_path('routes/api/classes.php'));
     Route::apiResource('classes', FitnessClassController::class);
-    Route::prefix('v1')->group(function () {
-        // 排课 CRUD
-        Route::apiResource('schedules', ClassScheduleController::class);
-        
-        // 教练列表 (用于前端下拉框)
-        Route::get('trainers', function() {
-            return \App\Models\Trainer::with('user')->get();
-        });
-    });
+    Route::apiResource('schedules', ClassScheduleController::class);
+    Route::get('trainers', function() {
+        return \App\Models\Trainer::with('user')->get();
+});
     // Module 3: Bookings
     // Route::prefix('bookings')->group(base_path('routes/api/bookings.php'));
 

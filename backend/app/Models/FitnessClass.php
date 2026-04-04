@@ -12,10 +12,12 @@ class FitnessClass extends Model
 
     protected $table = 'fitness_classes';
 
-    protected $fillable = [
+protected $fillable = [
         'title',
         'description',
         'duration_minutes',
+        'capacity',
+
         'status',
     ];
 
