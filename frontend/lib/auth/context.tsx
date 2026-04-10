@@ -79,7 +79,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (payload: RegisterPayload) => {
       const res = await authApi.register(payload);
       const { user: newUser } = res.data;
-      const role = resolvePrimaryRole(newUser.roles);
       setUser(newUser);
       router.push("/app");
     },

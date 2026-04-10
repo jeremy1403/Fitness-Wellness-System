@@ -1,39 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import type React from "react";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import { useAuth } from "@/lib/auth/context";
 import { ApiError } from "@/lib/api/http";
-
-const userRoles = ["member", "trainer", "admin"] as const;
-type UserRole = (typeof userRoles)[number];
-
-const roleLabels: Record<UserRole, string> = {
-  member: "Member",
-  trainer: "Trainer",
-  admin: "Admin",
-};
-
-const isUserRole = (v?: string | null): v is UserRole =>
-  !!v && (userRoles as readonly string[]).includes(v);
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 function LoginForm() {
-  const searchParams = useSearchParams();
   const { login } = useAuth();
-  const roleParam = searchParams.get("role");
 
-  const [role, setRole] = useState<UserRole>(
-    isUserRole(roleParam) ? roleParam : "member",
-  );
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (isUserRole(roleParam)) setRole(roleParam);
-  }, [roleParam]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -60,107 +42,142 @@ function LoginForm() {
   };
 
   return (
-    <>
-      {error && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+    <Card className="w-full max-w-md border-0 bg-transparent shadow-none lg:border lg:border-slate-200 lg:bg-white lg:shadow-sm">
+      <CardHeader className="space-y-1 pb-6">
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+          Welcome back
+        </h1>
+        <p className="text-sm text-slate-500">
+          Enter your credentials to access your account.
+        </p>
+      </CardHeader>
 
-      <form
-        onSubmit={handleSubmit}
-        className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
-      >
-        <div className="grid gap-4">
-          <div className="grid gap-3 sm:grid-cols-3">
-            {userRoles.map((item) => (
-              <label
-                key={item}
-                className={`cursor-pointer rounded-2xl border px-4 py-3 text-center text-sm font-semibold transition ${
-                  role === item
-                    ? "border-slate-900 bg-slate-900 text-white"
-                    : "border-slate-200 text-slate-700 hover:border-slate-300"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="role"
-                  value={item}
-                  className="sr-only"
-                  checked={role === item}
-                  onChange={() => setRole(item)}
-                />
-                {roleLabels[item]}
-              </label>
-            ))}
+      <CardContent>
+        {error && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
           </div>
+        )}
 
-          <div className="grid gap-3">
-            <label className="text-sm font-medium text-slate-700">
+        <form onSubmit={handleSubmit} className="grid gap-5">
+          <div className="grid gap-2">
+            <Label htmlFor="email" className="text-slate-700">
               Email
-              <input
-                type="email"
-                name="email"
-                autoComplete="email"
-                placeholder="you@example.com"
-                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
-                required
-              />
-              {fieldErrors.email && (
-                <p className="mt-1 text-xs text-red-600">
-                  {fieldErrors.email[0]}
-                </p>
-              )}
-            </label>
-            <label className="text-sm font-medium text-slate-700">
-              Password
-              <input
-                type="password"
-                name="password"
-                autoComplete="current-password"
-                placeholder="••••••••"
-                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
-                required
-              />
-            </label>
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              name="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              required
+              className="h-11"
+            />
+            {fieldErrors.email && (
+              <p className="text-xs text-red-600">{fieldErrors.email[0]}</p>
+            )}
           </div>
 
-          <button
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password" className="text-slate-700">
+                Password
+              </Label>
+              <Link
+                href="/forgot-password"
+                className="text-xs font-medium text-slate-400 transition hover:text-slate-600"
+              >
+                Forgot password?
+              </Link>
+            </div>
+            <Input
+              id="password"
+              type="password"
+              name="password"
+              autoComplete="current-password"
+              placeholder="••••••••"
+              required
+              className="h-11"
+            />
+            {fieldErrors.password && (
+              <p className="text-xs text-red-600">{fieldErrors.password[0]}</p>
+            )}
+          </div>
+
+          <Button
             type="submit"
             disabled={submitting}
-            className="mt-2 inline-flex w-full items-center justify-center rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
+            className="mt-1 h-11 w-full bg-slate-900 font-semibold hover:bg-slate-800"
           >
             {submitting ? "Signing in..." : "Sign in"}
-          </button>
-        </div>
-      </form>
+          </Button>
+        </form>
+      </CardContent>
 
-      <div className="flex flex-col gap-2 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-        <Link href="/register" className="font-semibold text-teal-600">
-          Create a member or trainer account
-        </Link>
-        <Link href="/forgot-password" className="font-semibold text-slate-500">
-          Forgot password
-        </Link>
-      </div>
-    </>
+      <CardFooter className="justify-center pt-4">
+        <p className="text-sm text-slate-500">
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/register"
+            className="font-semibold text-slate-900 transition hover:text-slate-700"
+          >
+            Create one
+          </Link>
+        </p>
+      </CardFooter>
+    </Card>
   );
 }
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen bg-slate-50 px-6 py-12">
-      <div className="mx-auto flex w-full max-w-xl flex-col gap-8">
-        <div className="flex flex-col gap-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
-            Sign in
-          </p>
-          <h1 className="text-3xl font-semibold text-slate-900">Welcome back</h1>
-          <p className="text-sm text-slate-600">
-            Enter your credentials to sign in.
+    <div className="grid min-h-screen lg:grid-cols-2">
+      {/* Left panel - decorative */}
+      <div className="relative hidden flex-col justify-between overflow-hidden bg-slate-950 p-10 lg:flex">
+        {/* Gradient overlay */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse at 30% 20%, oklch(0.55 0.12 55 / 0.15) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, oklch(0.45 0.1 250 / 0.1) 0%, transparent 50%)",
+          }}
+        />
+
+        {/* Noise texture */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E")`,
+            backgroundRepeat: "repeat",
+            backgroundSize: "256px 256px",
+          }}
+        />
+
+        {/* Brand */}
+        <div className="relative z-10">
+          <span className="text-sm font-bold tracking-widest text-white/60 uppercase">
+            Fitness & Wellness
+          </span>
+        </div>
+
+        {/* Central decorative element */}
+        <div className="relative z-10 flex flex-col gap-4">
+          <p className="max-w-sm text-lg/relaxed font-light text-white/50">
+            Your all-in-one platform for fitness class management, bookings, and
+            membership tracking.
           </p>
         </div>
 
+        {/* Bottom */}
+        <div className="relative z-10">
+          <p className="text-xs text-white/30">
+            Secure &middot; Reliable &middot; Modern
+          </p>
+        </div>
+      </div>
+
+      {/* Right panel - form */}
+      <div className="flex items-center justify-center bg-slate-50 p-6 lg:bg-white lg:p-12">
         <Suspense>
           <LoginForm />
         </Suspense>
