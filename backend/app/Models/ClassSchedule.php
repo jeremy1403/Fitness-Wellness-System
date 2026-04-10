@@ -31,9 +31,9 @@ class ClassSchedule extends Model
         return $this->belongsTo(FitnessClass::class, 'fitness_class_id');
     }
 
-    public function trainer(): BelongsTo
+    public function trainer()
     {
-        return $this->belongsTo(Trainer::class);
+        return $this->belongsTo(User::class, 'trainer_id');
     }
 
     public function bookings(): HasMany

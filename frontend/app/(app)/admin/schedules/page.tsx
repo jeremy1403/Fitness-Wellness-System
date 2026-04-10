@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-// 1. 注意这里：分别从两个 API 文件导入
 import { getFitnessClasses } from "@/lib/api/classes.api";
 import { 
   createSchedule, 
@@ -11,24 +10,47 @@ import {
   getTrainers 
 } from "@/lib/api/schedules.api"; 
 
+// 【新增】导入策略工厂
+import { ScheduleStrategyFactory } from "@/lib/strategies/schedule.strategies";
+
 export default function AdminCreateSchedulePage() {
-  // --- 数据源状态 ---
   const [classes, setClasses] = useState<any[]>([]);
   const [trainers, setTrainers] = useState<any[]>([]);
   const [scheduleList, setScheduleList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // --- 表单状态 ---
   const [classId, setClassId] = useState("");
   const [trainerId, setTrainerId] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [capacity, setCapacity] = useState(20); // 默认设为 20
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
-  // 加载数据
+  // --- 自动化策略逻辑：当选择课程或填入开始时间时自动重算 ---
+  useEffect(() => {
+    // 1. 找到当前选中的课程对象
+    const selectedClass = classes.find(c => String(c.id) === String(classId));
+
+    if (selectedClass && startTime) {
+      // 2. 确定模式（如果后端没传 setup_mode，默认用 automated）
+      // 这里的 duration_minutes 必须确保后端有返回
+      const mode = selectedClass.setup_mode || "automated";
+      const duration = selectedClass.duration_minutes || 60; // 默认60分钟
+
+      // 3. 通过工厂获得策略并执行计算
+      const strategy = ScheduleStrategyFactory.make(mode);
+      const calculatedEnd = strategy.calculateEndTime(startTime, duration);
+
+      // 4. 更新结束时间状态
+      if (calculatedEnd) {
+        setEndTime(calculatedEnd);
+      }
+    }
+  }, [classId, startTime, classes]); // 监听这三个变量
+
   const loadInitialData = async () => {
     try {
       setLoading(true);
@@ -42,7 +64,7 @@ export default function AdminCreateSchedulePage() {
       setScheduleList(schedulesData.data || schedulesData);
     } catch (err) {
       console.error("Load error:", err);
-      setError("Could not load schedules. Please check backend connection.");
+      setError("Could not load initial data.");
     } finally {
       setLoading(false);
     }
@@ -52,7 +74,6 @@ export default function AdminCreateSchedulePage() {
     loadInitialData();
   }, []);
 
-  // 提交创建
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
@@ -63,19 +84,20 @@ export default function AdminCreateSchedulePage() {
       const payload = {
         fitness_class_id: classId,
         trainer_id: trainerId,
-        // 处理 HTML5 datetime-local 的 'T' 字符，使其符合数据库格式
-        start_time: startTime.replace("T", " "),
-        end_time: endTime.replace("T", " "),
+        // 改回你的数据库字段名，注意确认后端接收的是 start_time 还是 start_datetime
+        start_datetime: startTime.replace("T", " "),
+        end_datetime: endTime.replace("T", " "),
+        capacity: capacity,
       };
-
+      console.log("FINAL PAYLOAD:", payload);
       await createSchedule(payload);
-      
-      // 重置并刷新
+      await loadInitialData(); 
+      //reset the form
       setClassId("");
       setTrainerId("");
       setStartTime("");
       setEndTime("");
-      await loadInitialData(); 
+      // await loadInitialData(); 
       alert("Schedule published successfully!");
     } catch (e: any) {
       setError(e.message || "Something went wrong");
@@ -86,13 +108,12 @@ export default function AdminCreateSchedulePage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to remove this schedule slot?")) return;
+    if (!confirm("Are you sure?")) return;
     try {
       await deleteSchedule(id);
-      // 乐观更新界面
       setScheduleList(prev => prev.filter(s => s.id !== id));
     } catch (err) {
-      alert("Failed to delete the schedule.");
+      alert("Failed to delete.");
     }
   };
 
@@ -128,15 +149,32 @@ export default function AdminCreateSchedulePage() {
               {fieldErrors.fitness_class_id && <p className="mt-1 text-xs text-red-600">{fieldErrors.fitness_class_id[0]}</p>}
             </label>
 
-            <label className="text-sm font-medium text-slate-700 sm:col-span-2">
+            {/* <label className="text-sm font-medium text-slate-700 sm:col-span-2">
               Assign Trainer
               <select value={trainerId} onChange={(e) => setTrainerId(e.target.value)} required className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 bg-white">
                 <option value="" disabled>Choose a trainer...</option>
                 {trainers.map(t => <option key={t.id} value={t.id}>{t.name || t.user?.name}</option>)}
               </select>
               {fieldErrors.trainer_id && <p className="mt-1 text-xs text-red-600">{fieldErrors.trainer_id[0]}</p>}
-            </label>
+            </label> */}
 
+            <label className="text-sm font-medium text-slate-700 sm:col-span-2">
+              Assign Trainer
+              <select 
+                value={trainerId} 
+                onChange={(e) => setTrainerId(e.target.value)} 
+                required 
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 bg-white"
+              >
+                <option value="" disabled>Choose a trainer...</option>
+                {trainers.map(t => (
+                  // 这里的 t 就是 User 对象，直接拿 t.id 和 t.name
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="text-sm font-medium text-slate-700">
               Start Time
               <input type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} required className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" />
@@ -147,6 +185,20 @@ export default function AdminCreateSchedulePage() {
               End Time
               <input type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} required className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" />
               {fieldErrors.end_time && <p className="mt-1 text-xs text-red-600">{fieldErrors.end_time[0]}</p>}
+            </label>
+
+            <label className="text-sm font-medium text-slate-700 sm:col-span-2">
+              Max Capacity (Members)
+              <input 
+                type="number" 
+                value={capacity} 
+                onChange={(e) => setCapacity(Number(e.target.value))} 
+                min="1"
+                required 
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" 
+                placeholder="e.g. 20"
+              />
+              {fieldErrors.capacity && <p className="mt-1 text-xs text-red-600">{fieldErrors.capacity[0]}</p>}
             </label>
           </div>
         </section>
@@ -194,14 +246,32 @@ export default function AdminCreateSchedulePage() {
                     {item.fitness_class?.title || `Class #${item.fitness_class_id}`}
                   </td>
                   <td className="px-4 py-3">
-                    {item.trainer?.user?.name || item.trainer?.name || `Trainer #${item.trainer_id}`}
+                    {/* {item.trainer?.user?.name || item.trainer?.name || `Trainer #${item.trainer_id}`} */}
+                    {item.trainer?.name || `Trainer #${item.trainer_id}`}
                   </td>
-                  <td className="px-4 py-3 text-xs leading-relaxed">
+                  {/* <td className="px-4 py-3 text-xs leading-relaxed">
                     <div className="font-semibold">{new Date(item.start_time).toLocaleDateString()}</div>
                     <div className="text-slate-400">
                       {new Date(item.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
                       {new Date(item.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
+                  </td> */}
+                  <td className="px-4 py-3 text-xs leading-relaxed">
+                    {item.start_datetime ? (
+                      <>
+                        {/* 1. 把空格换成 T，确保 JS 能够正确识别日期格式 */}
+                        <div className="font-semibold">
+                          {new Date(item.start_datetime.replace(" ", "T")).toLocaleDateString()}
+                        </div>
+                        <div className="text-slate-400">
+                          {/* 2. 这里的字段名必须是 start_datetime 而不是 start_time */}
+                          {new Date(item.start_datetime.replace(" ", "T")).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
+                          {new Date(item.end_datetime.replace(" ", "T")).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-slate-400">Time Not Set</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button 
