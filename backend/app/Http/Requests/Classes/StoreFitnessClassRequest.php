@@ -21,18 +21,16 @@ class StoreFitnessClassRequest extends FormRequest
             'title' => 'required|string|max:100', // 限制长度防止数据库溢出或拒绝服务攻击
             'description' => 'nullable|string|max:1000',
             'duration_minutes' => 'sometimes|integer|min:15|max:480',
-            'setup_mode'       => 'sometimes|in:simple,automated',
-            'class_type'       => 'sometimes|in:Yoga,Spin,HIIT,General',
-            
+            'status' => 'required|in:active,inactive'
         ];
     }
     
-    // 自定义错误消息（可选）
     public function messages(): array
     {
         return [
-            'title.required' => '课程标题是必填的。',
-            'duration_minutes.min' => '课程时长至少需要15分钟。',
+            'title.required' => 'Please provide a class name.',
+            'duration_minutes.min' => 'The course duration must be at least 15 minutes.',
+            'status.required' => 'Please select a status.',
         ];
     }
 }

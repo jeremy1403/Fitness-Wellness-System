@@ -49,7 +49,7 @@ class ClassScheduleController extends Controller
         // 返回时重新加载关联，方便前端直接渲染
         return response()->json([
             'message' => 'Schedule created successfully!',
-            'data' => $schedule->load(['fitnessClass', 'trainer.user'])
+            'data' => $schedule->load(['fitnessClass', 'trainer'])
         ], 201);
     }
 

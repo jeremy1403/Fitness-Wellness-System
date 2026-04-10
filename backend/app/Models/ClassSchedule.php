@@ -31,7 +31,7 @@ class ClassSchedule extends Model
         return $this->belongsTo(FitnessClass::class, 'fitness_class_id');
     }
 
-    public function trainer()
+    public function trainer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'trainer_id');
     }

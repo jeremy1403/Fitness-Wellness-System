@@ -17,7 +17,7 @@ protected $fillable = [
         'description',
         'duration_minutes',
         'capacity',
-
+        'setup_mode',
         'status',
     ];
 

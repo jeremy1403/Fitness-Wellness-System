@@ -33,6 +33,22 @@ class FitnessClassController extends Controller
             'data' => $fitnessClass
         ], 201);
     }
+    public function update(StoreFitnessClassRequest $request, int $id): JsonResponse
+    {
+        // 1. 查找是否存在
+        $fitnessClass = FitnessClass::find($id);
+        if (!$fitnessClass) {
+            return response()->json(['message' => 'Class not found'], 404);
+        }
+
+        // 2. 更新数据 (validated 确保数据安全)
+        $fitnessClass->update($request->validated());
+
+        return response()->json([
+            'message' => 'Updated successfully!',
+            'data' => $fitnessClass
+        ], 200);
+    }
 
     public function destroy(int $id): JsonResponse
     {

@@ -5,6 +5,7 @@ export interface FitnessClassData {
   description: string;
   duration_minutes: number;
   capacity?: number;
+  status?: string; // 添加 status 字段
   setup_mode?: 'simple' | 'automated';
   class_type?: 'Yoga' | 'Spin' | 'HIIT' | 'General';
 }
@@ -35,7 +36,27 @@ export const createFitnessClass = async (data: FitnessClassData) => {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw { message: errorData.message || "Failed", errors: errorData.errors };
+    throw { response: { data: errorData, status: response.status } }; // 包装成兼容 error.response 的格式
+  }
+  return await response.json();
+};
+
+
+export const updateFitnessClass = async (id: number, data: FitnessClassData) => {
+  const url = backendUrl(`/classes/${id}`);
+  const response = await fetch(url, {
+    method: "PUT", 
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw { response: { data: errorData, status: response.status } };
   }
   return await response.json();
 };
