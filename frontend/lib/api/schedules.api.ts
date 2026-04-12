@@ -52,3 +52,23 @@ export const getTrainers = async () => {
   if (!response.ok) throw new Error("Failed to fetch trainers");
   return await response.json();
 };
+
+// 5. 更新排课 (Update)
+export const updateSchedule = async (id: number | string, data: any) => {
+  const url = backendUrl(`/schedules/${id}`);
+  const response = await fetch(url, {
+    method: "PUT", // 或者根据你的后端 API 使用 "PATCH"
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw { message: errorData.message || "Update failed", errors: errorData.errors };
+  }
+  return await response.json();
+};

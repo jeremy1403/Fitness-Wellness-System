@@ -7,10 +7,9 @@ import {
   createSchedule, 
   getSchedules, 
   deleteSchedule, 
-  getTrainers 
+  getTrainers,
+  updateSchedule 
 } from "@/lib/api/schedules.api"; 
-
-// 【新增】导入策略工厂
 import { ScheduleStrategyFactory } from "@/lib/strategies/schedule.strategies";
 
 export default function AdminCreateSchedulePage() {
@@ -19,38 +18,21 @@ export default function AdminCreateSchedulePage() {
   const [scheduleList, setScheduleList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // --- 表单状态 ---
   const [classId, setClassId] = useState("");
   const [trainerId, setTrainerId] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
-  const [capacity, setCapacity] = useState(20); // 默认设为 20
+  const [capacity, setCapacity] = useState(20);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
-  // --- 自动化策略逻辑：当选择课程或填入开始时间时自动重算 ---
-  useEffect(() => {
-    // 1. 找到当前选中的课程对象
-    const selectedClass = classes.find(c => String(c.id) === String(classId));
+  // --- 编辑状态 ---
+  const [editingId, setEditingId] = useState<number | null>(null);
 
-    if (selectedClass && startTime) {
-      // 2. 确定模式（如果后端没传 setup_mode，默认用 automated）
-      // 这里的 duration_minutes 必须确保后端有返回
-      const mode = selectedClass.setup_mode || "automated";
-      const duration = selectedClass.duration_minutes || 60; // 默认60分钟
-
-      // 3. 通过工厂获得策略并执行计算
-      const strategy = ScheduleStrategyFactory.make(mode);
-      const calculatedEnd = strategy.calculateEndTime(startTime, duration);
-
-      // 4. 更新结束时间状态
-      if (calculatedEnd) {
-        setEndTime(calculatedEnd);
-      }
-    }
-  }, [classId, startTime, classes]); // 监听这三个变量
-
+  // 1. 初始化数据
   const loadInitialData = async () => {
     try {
       setLoading(true);
@@ -63,17 +45,72 @@ export default function AdminCreateSchedulePage() {
       setTrainers(trainersData.data || trainersData);
       setScheduleList(schedulesData.data || schedulesData);
     } catch (err) {
-      console.error("Load error:", err);
       setError("Could not load initial data.");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadInitialData();
-  }, []);
+  useEffect(() => { loadInitialData(); }, []);
 
+  // 2. 自动化策略（计算结束时间）
+  useEffect(() => {
+    const selectedClass = classes.find(c => String(c.id) === String(classId));
+    if (selectedClass && startTime) {
+      const mode = selectedClass.setup_mode || "automated";
+      const duration = selectedClass.duration_minutes || 60;
+      const strategy = ScheduleStrategyFactory.make(mode);
+      const calculatedEnd = strategy.calculateEndTime(startTime, duration);
+      if (calculatedEnd) setEndTime(calculatedEnd);
+    }
+  }, [classId, startTime, classes]);
+
+  // --- 辅助：格式化表格显示日期 ---
+  const formatDisplayDate = (dateStr: string) => {
+    if (!dateStr) return { date: "N/A", time: "" };
+    const dateObj = new Date(dateStr);
+    // 检查日期是否有效
+    if (isNaN(dateObj.getTime())) return { date: dateStr, time: "" };
+    
+    return {
+      date: dateObj.toLocaleDateString(),
+      time: dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+  };
+
+  // --- 核心：进入编辑模式 ---
+  const startEdit = (item: any) => {
+    setEditingId(item.id);
+    setClassId(String(item.fitness_class_id));
+    setTrainerId(String(item.trainer_id));
+    setCapacity(item.capacity);
+    
+    // 适配 datetime-local 格式 (处理 ISO 或带空格的格式)
+    const formatToInput = (str: string) => {
+      if (!str) return "";
+      const d = new Date(str);
+      // 转换为当地时间格式：YYYY-MM-DDTHH:mm
+      return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    };
+
+    setStartTime(formatToInput(item.start_datetime));
+    setEndTime(formatToInput(item.end_datetime));
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setClassId("");
+    setTrainerId("");
+    setStartTime("");
+    setEndTime("");
+    setCapacity(20);
+    setError(null);
+    setFieldErrors({});
+  };
+
+  // 3. 提交处理
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
@@ -84,23 +121,24 @@ export default function AdminCreateSchedulePage() {
       const payload = {
         fitness_class_id: classId,
         trainer_id: trainerId,
-        // 改回你的数据库字段名，注意确认后端接收的是 start_time 还是 start_datetime
+        // 发送给后端时去掉 T
         start_datetime: startTime.replace("T", " "),
         end_datetime: endTime.replace("T", " "),
         capacity: capacity,
       };
-      console.log("FINAL PAYLOAD:", payload);
-      await createSchedule(payload);
+
+      if (editingId) {
+        await updateSchedule(editingId, payload);
+        alert("Schedule updated successfully!");
+      } else {
+        await createSchedule(payload);
+        alert("Schedule published successfully!");
+      }
+
+      cancelEdit(); 
       await loadInitialData(); 
-      //reset the form
-      setClassId("");
-      setTrainerId("");
-      setStartTime("");
-      setEndTime("");
-      // await loadInitialData(); 
-      alert("Schedule published successfully!");
     } catch (e: any) {
-      setError(e.message || "Something went wrong");
+      setError(e.message || "Operation failed.");
       setFieldErrors(e.errors || {});
     } finally {
       setSubmitting(false);
@@ -122,8 +160,12 @@ export default function AdminCreateSchedulePage() {
       {/* Header */}
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Manage Schedule</h1>
-          <p className="mt-2 text-sm text-slate-600">Assign a class, trainer, and specific time slot.</p>
+          <h1 className="text-2xl font-semibold text-slate-900">
+            {editingId ? "Edit Schedule" : "Manage Schedule"}
+          </h1>
+          <p className="mt-2 text-sm text-slate-600">
+             {editingId ? `Modifying slot #${editingId}` : "Assign a class, trainer, and specific time slot."}
+          </p>
         </div>
         <Link href="/admin" className="text-sm font-medium text-slate-500 hover:text-slate-900">
           &larr; Back
@@ -146,59 +188,29 @@ export default function AdminCreateSchedulePage() {
                 <option value="" disabled>Choose a fitness class...</option>
                 {classes.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
               </select>
-              {fieldErrors.fitness_class_id && <p className="mt-1 text-xs text-red-600">{fieldErrors.fitness_class_id[0]}</p>}
             </label>
-
-            {/* <label className="text-sm font-medium text-slate-700 sm:col-span-2">
-              Assign Trainer
-              <select value={trainerId} onChange={(e) => setTrainerId(e.target.value)} required className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 bg-white">
-                <option value="" disabled>Choose a trainer...</option>
-                {trainers.map(t => <option key={t.id} value={t.id}>{t.name || t.user?.name}</option>)}
-              </select>
-              {fieldErrors.trainer_id && <p className="mt-1 text-xs text-red-600">{fieldErrors.trainer_id[0]}</p>}
-            </label> */}
 
             <label className="text-sm font-medium text-slate-700 sm:col-span-2">
               Assign Trainer
-              <select 
-                value={trainerId} 
-                onChange={(e) => setTrainerId(e.target.value)} 
-                required 
-                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 bg-white"
-              >
+              <select value={trainerId} onChange={(e) => setTrainerId(e.target.value)} required className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 bg-white">
                 <option value="" disabled>Choose a trainer...</option>
-                {trainers.map(t => (
-                  // 这里的 t 就是 User 对象，直接拿 t.id 和 t.name
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
+                {trainers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             </label>
+
             <label className="text-sm font-medium text-slate-700">
               Start Time
               <input type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} required className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" />
-              {fieldErrors.start_time && <p className="mt-1 text-xs text-red-600">{fieldErrors.start_time[0]}</p>}
             </label>
 
             <label className="text-sm font-medium text-slate-700">
               End Time
               <input type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} required className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" />
-              {fieldErrors.end_time && <p className="mt-1 text-xs text-red-600">{fieldErrors.end_time[0]}</p>}
             </label>
 
             <label className="text-sm font-medium text-slate-700 sm:col-span-2">
-              Max Capacity (Members)
-              <input 
-                type="number" 
-                value={capacity} 
-                onChange={(e) => setCapacity(Number(e.target.value))} 
-                min="1"
-                required 
-                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" 
-                placeholder="e.g. 20"
-              />
-              {fieldErrors.capacity && <p className="mt-1 text-xs text-red-600">{fieldErrors.capacity[0]}</p>}
+              Max Capacity
+              <input type="number" value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} min="1" required className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" />
             </label>
           </div>
         </section>
@@ -208,17 +220,24 @@ export default function AdminCreateSchedulePage() {
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Actions</h2>
             <p className="mt-2 text-xs text-slate-500">
-              Publishing this schedule will immediately allow members to start booking slots based on their membership tier.
+              {editingId ? "Changes will take effect immediately upon saving." : "Publishing will allow members to start booking slots."}
             </p>
           </div>
           
-          <button
-            type="submit"
-            disabled={submitting}
-            className="mt-6 w-full rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
-          >
-            {submitting ? "Publishing..." : "Publish Schedule"}
-          </button>
+          <div className="flex flex-col gap-2">
+            <button
+              type="submit"
+              disabled={submitting}
+              className={`mt-6 w-full rounded-full px-6 py-4 text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50 ${editingId ? 'bg-blue-600' : 'bg-slate-900'}`}
+            >
+              {submitting ? "Saving..." : editingId ? "Update Schedule" : "Publish Schedule"}
+            </button>
+            {editingId && (
+              <button onClick={cancelEdit} type="button" className="text-sm text-slate-500 hover:text-slate-800 text-center">
+                Cancel Edit
+              </button>
+            )}
+          </div>
         </section>
       </form>
 
@@ -232,57 +251,43 @@ export default function AdminCreateSchedulePage() {
                 <th className="px-4 py-3">Class</th>
                 <th className="px-4 py-3">Trainer</th>
                 <th className="px-4 py-3">Time Slot</th>
+                <th className="px-4 py-3">Capacity</th>
                 <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                <tr><td colSpan={4} className="text-center py-8 text-slate-400">Loading schedules...</td></tr>
-              ) : scheduleList.length === 0 ? (
-                <tr><td colSpan={4} className="text-center py-8 text-slate-400">No schedules found.</td></tr>
-              ) : scheduleList.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50 transition group">
-                  <td className="px-4 py-3 font-medium text-slate-900">
-                    {item.fitness_class?.title || `Class #${item.fitness_class_id}`}
-                  </td>
-                  <td className="px-4 py-3">
-                    {/* {item.trainer?.user?.name || item.trainer?.name || `Trainer #${item.trainer_id}`} */}
-                    {item.trainer?.name || `Trainer #${item.trainer_id}`}
-                  </td>
-                  {/* <td className="px-4 py-3 text-xs leading-relaxed">
-                    <div className="font-semibold">{new Date(item.start_time).toLocaleDateString()}</div>
-                    <div className="text-slate-400">
-                      {new Date(item.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
-                      {new Date(item.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                  </td> */}
-                  <td className="px-4 py-3 text-xs leading-relaxed">
-                    {item.start_datetime ? (
-                      <>
-                        {/* 1. 把空格换成 T，确保 JS 能够正确识别日期格式 */}
-                        <div className="font-semibold">
-                          {new Date(item.start_datetime.replace(" ", "T")).toLocaleDateString()}
-                        </div>
-                        <div className="text-slate-400">
-                          {/* 2. 这里的字段名必须是 start_datetime 而不是 start_time */}
-                          {new Date(item.start_datetime.replace(" ", "T")).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
-                          {new Date(item.end_datetime.replace(" ", "T")).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </>
-                    ) : (
-                      <span className="text-slate-400">Time Not Set</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button 
-                      onClick={() => handleDelete(item.id)} 
-                      className="text-red-500 hover:text-red-700 font-medium opacity-0 group-hover:opacity-100 transition"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                <tr><td colSpan={4} className="text-center py-8">Loading schedules...</td></tr>
+              ) : scheduleList.map((item) => {
+                const start = formatDisplayDate(item.start_datetime);
+                const end = formatDisplayDate(item.end_datetime);
+                
+                return (
+                  <tr key={item.id} className="hover:bg-slate-50 transition group">
+                    <td className="px-4 py-3 font-medium text-slate-900">{item.fitness_class?.title}</td>
+                    <td className="px-4 py-3">{item.trainer?.name}</td>
+                    <td className="px-4 py-3 text-xs">
+                      <div className="font-semibold">{start.date}</div>
+                      <div className="text-slate-400">{start.time} - {end.time}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
+                        {item.capacity} members
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex justify-end gap-1">
+                        <button onClick={() => startEdit(item)} className="p-2 text-blue-400 hover:bg-blue-50 rounded-xl transition-colors">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                        <button onClick={() => handleDelete(item.id)} className="p-2 text-red-400 hover:bg-red-50 rounded-xl transition-colors">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

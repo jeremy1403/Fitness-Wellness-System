@@ -53,6 +53,33 @@ class ClassScheduleController extends Controller
         ], 201);
     }
 
+    public function update(Request $request, $id)
+    {
+        // 1. 验证数据 (建议根据你的数据库字段调整)
+        $validated = $request->validate([
+            'fitness_class_id' => 'required',
+            'trainer_id'       => 'required',
+            'start_datetime'   => 'required|date',
+            'end_datetime'     => 'required|date',
+            'capacity'         => 'required|integer|min:1',
+        ]);
+
+        // 2. 查找排期
+        $schedule = ClassSchedule::find($id);
+
+        if (!$schedule) {
+            return response()->json(['message' => 'Schedule not found'], 404);
+        }
+
+        // 3. 更新数据
+        $schedule->update($validated);
+
+        // 4. 返回成功响应
+        return response()->json([
+            'message' => 'Schedule updated successfully!',
+            'data' => $schedule
+        ]);
+    }
     /**
      * 删除排课
      */
