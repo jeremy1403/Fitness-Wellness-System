@@ -9,13 +9,9 @@ use Illuminate\Http\JsonResponse;
 
 class ClassScheduleController extends Controller
 {
-    /**
-     * 获取所有排课列表 (包含关联数据)
-     */
+    //Retrieve all course schedules  including related data
     public function index(): JsonResponse
     {
-        // 使用 Eager Loading (with) 加载课程和教练详情
-        // 这样前端 item.fitness_class.title 才有值
         $schedules = ClassSchedule::with(['fitnessClass', 'trainer'])
             ->latest('start_datetime')
             ->get();
@@ -24,9 +20,7 @@ class ClassScheduleController extends Controller
     }
     
 
-    /**
-     * 保存新排课
-     */
+    //Save new schedule
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -37,16 +31,8 @@ class ClassScheduleController extends Controller
             'capacity'         => 'required|integer',
         ]);
 
-        // 进阶需求：可以在这里检查该教练在同一时间段是否已经有课
-        // $exists = ClassSchedule::where('trainer_id', $request->trainer_id)
-        //     ->where('start_datetime', '<', $request->end_time)
-        //     ->where('end_time', '>', $request->start_datetime)
-        //     ->exists();
-        // if ($exists) return response()->json(['message' => 'Trainer is busy!'], 422);
-
         $schedule = ClassSchedule::create($validated);
 
-        // 返回时重新加载关联，方便前端直接渲染
         return response()->json([
             'message' => 'Schedule created successfully!',
             'data' => $schedule->load(['fitnessClass', 'trainer'])
@@ -55,7 +41,6 @@ class ClassScheduleController extends Controller
 
     public function update(Request $request, $id)
     {
-        // 1. 验证数据 (建议根据你的数据库字段调整)
         $validated = $request->validate([
             'fitness_class_id' => 'required',
             'trainer_id'       => 'required',
@@ -64,25 +49,20 @@ class ClassScheduleController extends Controller
             'capacity'         => 'required|integer|min:1',
         ]);
 
-        // 2. 查找排期
         $schedule = ClassSchedule::find($id);
 
         if (!$schedule) {
             return response()->json(['message' => 'Schedule not found'], 404);
         }
 
-        // 3. 更新数据
         $schedule->update($validated);
 
-        // 4. 返回成功响应
         return response()->json([
             'message' => 'Schedule updated successfully!',
             'data' => $schedule
         ]);
     }
-    /**
-     * 删除排课
-     */
+    //Delete scheduling
     public function destroy($id): JsonResponse
     {
         $schedule = ClassSchedule::find($id);

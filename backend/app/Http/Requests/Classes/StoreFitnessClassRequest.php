@@ -6,14 +6,20 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreFitnessClassRequest extends FormRequest
 {
-    // 权限验证：确定当前用户是否有权执行此操作
-    public function authorize(): bool
-    {
-        // 示例：只有管理员可以创建课程
-        // return $this->user()->is_admin; 
-        return true; 
-    }
+    // // 权限验证：确定当前用户是否有权执行此操作
+    // public function authorize(): bool
+    // {
+    //     // 示例：只有管理员可以创建课程
+    //     // return $this->user()->is_admin; 
+    //     return true; 
+    // }
 
+    protected function prepareForValidation()
+    {
+        $this->merge([
+           'description' => strip_tags($this->description),
+       ]);
+    }
     // 验证规则
     public function rules(): array
     {

@@ -205,7 +205,8 @@ export default function AdminCreateSchedulePage() {
 
             <label className="text-sm font-medium text-slate-700">
               End Time
-              <input type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} required className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" />
+              {/* <input type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} required className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" /> */}
+              <input type="datetime-local" value={endTime} readOnly className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" />
             </label>
 
             <label className="text-sm font-medium text-slate-700 sm:col-span-2">
