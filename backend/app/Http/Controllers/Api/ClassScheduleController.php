@@ -12,7 +12,7 @@ class ClassScheduleController extends Controller
     //Retrieve all course schedules  including related data
     public function index(): JsonResponse
     {
-        $schedules = ClassSchedule::with(['fitnessClass', 'trainer'])
+        $schedules = ClassSchedule::with(['fitnessClass', 'trainer.user'])
             ->latest('start_datetime')
             ->get();
 
@@ -32,7 +32,7 @@ class ClassScheduleController extends Controller
                     return $query->where('trainer_id', $request->trainer_id);
                 }),
             ],
-            'trainer_id' => 'required|exists:users,id', 
+            'trainer_id' => 'required|exists:trainers,id',
             
             'start_datetime' => 'required|date',
             'end_datetime'   => 'required|date|after:start_datetime',
@@ -46,7 +46,7 @@ class ClassScheduleController extends Controller
 
         return response()->json([
             'message' => 'Schedule created successfully!',
-            'data' => $schedule->load(['fitnessClass', 'trainer'])
+            'data' => $schedule->load(['fitnessClass', 'trainer.user'])
         ], 201);
     }
 

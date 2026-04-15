@@ -24,10 +24,15 @@ Route::prefix('v1')->group(function () {
     Route::apiResource('classes', FitnessClassController::class);
     Route::apiResource('schedules', ClassScheduleController::class);
     Route::get('trainers', function() {
-        return \App\Models\User::whereHas('roles', function($q) {
-        $q->where('name', 'trainer');
-    })->get();
-});
+        return \App\Models\Trainer::with('user')
+            ->where('status', 'active')
+            ->get()
+            ->map(fn($t) => [
+                'id'        => $t->id,
+                'name'      => $t->user?->name ?? '',
+                'specialty' => $t->specialty,
+            ]);
+    });
     // Module 3: Bookings
     // Route::prefix('bookings')->group(base_path('routes/api/bookings.php'));
 

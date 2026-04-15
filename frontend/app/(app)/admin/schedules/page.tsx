@@ -271,7 +271,7 @@ export default function AdminCreateSchedulePage() {
                 return (
                   <tr key={item.id} className="hover:bg-slate-50 transition group">
                     <td className="px-4 py-3 font-medium text-slate-900">{item.fitness_class?.title}</td>
-                    <td className="px-4 py-3">{item.trainer?.name}</td>
+                    <td className="px-4 py-3">{item.trainer?.user?.name ?? item.trainer?.name}</td>
                     <td className="px-4 py-3 text-xs">
                       <div className="font-semibold">{start.date}</div>
                       <div className="text-slate-400">{start.time} - {end.time}</div>

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Trainer;
 
 class ClassSchedule extends Model
 {
@@ -33,7 +34,7 @@ class ClassSchedule extends Model
 
     public function trainer(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'trainer_id');
+        return $this->belongsTo(Trainer::class, 'trainer_id');
     }
 
     public function bookings(): HasMany
