@@ -32,7 +32,8 @@ class EloquentFitnessClassRepository implements FitnessClassRepositoryInterface
 
     public function all(): Collection
     {
-        return FitnessClass::all();
+        // return FitnessClass::all();
+        return FitnessClass::orderByDesc('created_at')->get();
     }
 
     public function getActive(): Collection
