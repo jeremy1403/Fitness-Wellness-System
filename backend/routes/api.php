@@ -3,6 +3,9 @@
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\Api\FitnessClassController;
+use App\Http\Controllers\Api\ClassScheduleController;
+// use App\Http\Controllers\Api\TrainerController;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,15 +23,20 @@ Route::prefix('v1')->group(function () {
     Route::prefix('auth')->group(base_path('routes/api/auth.php'));
 
     // Module 2: Fitness Classes & Schedules
-    // Route::prefix('classes')->group(base_path('routes/api/classes.php'));
+    Route::apiResource('classes', FitnessClassController::class);
+    Route::apiResource('schedules', ClassScheduleController::class);
+
+    Route::get('trainers', function () {
+        return \App\Models\User::whereHas('roles', function ($q) {
+            $q->where('name', 'trainer');
+        })->get();
+    });
 
     // Module 3: Bookings
-    
-
     Route::middleware('auth:sanctum')->prefix('bookings')->group(function () {
-    Route::post('/', [BookingController::class, 'store']);
-    Route::get('/history', [BookingController::class, 'history']);
-    Route::post('/{id}/cancel', [BookingController::class, 'cancel']);
+        Route::post('/', [BookingController::class, 'store']);
+        Route::get('/history', [BookingController::class, 'history']);
+        Route::post('/{id}/cancel', [BookingController::class, 'cancel']);
     });
     // Route::prefix('bookings')->group(base_path('routes/api/bookings.php'));
 
@@ -38,6 +46,7 @@ Route::prefix('v1')->group(function () {
     // Health check (includes DB connectivity)
     Route::get('/health', function () {
         $dbOk = false;
+
         try {
             DB::connection()->getPdo();
             $dbOk = true;

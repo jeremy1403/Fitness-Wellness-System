@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Shield, Plus, X } from "lucide-react";
+import { Shield } from "lucide-react";
+import { useAuth } from "@/lib/auth/context";
 import { adminApi } from "@/lib/api/admin.api";
 import { ApiError } from "@/lib/api/http";
 import type { User, UserRole } from "@/types/auth";
@@ -18,24 +19,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -51,22 +34,13 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 export default function AdminRolesPage() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | UserRole>("all");
-  const [actionLoading, setActionLoading] = useState(false);
+  const [changeLoading, setChangeLoading] = useState<number | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-
-  // Assign role dialog state
-  const [assignTarget, setAssignTarget] = useState<User | null>(null);
-  const [selectedRole, setSelectedRole] = useState<string>("");
-
-  // Remove role dialog state
-  const [removeTarget, setRemoveTarget] = useState<{
-    user: User;
-    role: string;
-  } | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -93,45 +67,21 @@ export default function AdminRolesPage() {
       ? users
       : users.filter((u) => u.roles.includes(filter));
 
-  const handleAssignRole = async () => {
-    if (!assignTarget || !selectedRole) return;
-    setActionLoading(true);
+  const handleChangeRole = async (user: User, newRole: UserRole) => {
+    if (user.roles.length === 1 && user.roles[0] === newRole) return;
+    setChangeLoading(user.id);
     setActionError(null);
     try {
-      const res = await adminApi.assignRole(assignTarget.id, selectedRole);
+      const res = await adminApi.changeRole(user.id, user.roles, newRole);
       setUsers((prev) =>
         prev.map((u) => (u.id === res.data.id ? res.data : u)),
       );
-      setAssignTarget(null);
-      setSelectedRole("");
     } catch (error) {
       setActionError(
-        getErrorMessage(error, "Unable to assign the selected role."),
+        getErrorMessage(error, "Unable to change the role for this user."),
       );
     } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleRemoveRole = async () => {
-    if (!removeTarget) return;
-    setActionLoading(true);
-    setActionError(null);
-    try {
-      const res = await adminApi.removeRole(
-        removeTarget.user.id,
-        removeTarget.role,
-      );
-      setUsers((prev) =>
-        prev.map((u) => (u.id === res.data.id ? res.data : u)),
-      );
-      setRemoveTarget(null);
-    } catch (error) {
-      setActionError(
-        getErrorMessage(error, "Unable to remove the selected role."),
-      );
-    } finally {
-      setActionLoading(false);
+      setChangeLoading(null);
     }
   };
 
@@ -149,7 +99,7 @@ export default function AdminRolesPage() {
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Roles</h1>
           <p className="mt-1 text-sm text-slate-500">
-            View and manage user role assignments.
+            View and manage user roles.
           </p>
         </div>
         <div className="flex items-center gap-2 text-sm text-slate-500">
@@ -221,60 +171,55 @@ export default function AdminRolesPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Roles</TableHead>
-                  <TableHead className="w-32">Actions</TableHead>
+                  <TableHead>Role</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((user) => {
-                  const availableRoles = allRoles.filter(
-                    (r) => !user.roles.includes(r),
-                  );
+                  const isSelf = currentUser?.id === user.id;
+                  const currentRole = user.roles[0] ?? "member";
 
                   return (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium text-slate-900">
                         {user.name}
+                        {isSelf && (
+                          <Badge
+                            variant="outline"
+                            className="ml-2 text-xs text-slate-400"
+                          >
+                            You
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="text-slate-500">
                         {user.email}
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {user.roles.map((role) => (
-                            <Badge
-                              key={role}
-                              variant="outline"
-                              className="group gap-1 pr-1 text-xs"
-                            >
-                              {role}
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setRemoveTarget({ user, role })
-                                }
-                                className="ml-0.5 rounded-sm p-0.5 opacity-50 transition hover:bg-slate-200 hover:opacity-100"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {availableRoles.length > 0 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 gap-1 text-xs"
-                            onClick={() => {
-                              setAssignTarget(user);
-                              setSelectedRole("");
-                            }}
+                        {isSelf ? (
+                          <Badge variant="outline" className="text-xs">
+                            {currentRole.charAt(0).toUpperCase() +
+                              currentRole.slice(1)}
+                          </Badge>
+                        ) : (
+                          <Select
+                            value={currentRole}
+                            onValueChange={(value) =>
+                              handleChangeRole(user, value as UserRole)
+                            }
+                            disabled={changeLoading === user.id}
                           >
-                            <Plus className="h-3.5 w-3.5" />
-                            Assign
-                          </Button>
+                            <SelectTrigger className="h-8 w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {allRoles.map((role) => (
+                                <SelectItem key={role} value={role}>
+                                  {role.charAt(0).toUpperCase() + role.slice(1)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         )}
                       </TableCell>
                     </TableRow>
@@ -285,87 +230,6 @@ export default function AdminRolesPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Assign role dialog */}
-      <Dialog
-        open={!!assignTarget}
-        onOpenChange={(open) => {
-          if (!open) setAssignTarget(null);
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Assign role</DialogTitle>
-            <DialogDescription>
-              Add a role to <strong>{assignTarget?.name}</strong>.
-            </DialogDescription>
-          </DialogHeader>
-
-          <Select value={selectedRole} onValueChange={setSelectedRole}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a role..." />
-            </SelectTrigger>
-            <SelectContent>
-              {assignTarget &&
-                allRoles
-                  .filter((r) => !assignTarget.roles.includes(r))
-                  .map((role) => (
-                    <SelectItem key={role} value={role}>
-                      {role.charAt(0).toUpperCase() + role.slice(1)}
-                    </SelectItem>
-                  ))}
-            </SelectContent>
-          </Select>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setAssignTarget(null)}
-              disabled={actionLoading}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleAssignRole}
-              disabled={!selectedRole || actionLoading}
-              className="bg-amber-600 hover:bg-amber-500"
-            >
-              {actionLoading ? "Assigning..." : "Assign role"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Remove role confirmation */}
-      <AlertDialog
-        open={!!removeTarget}
-        onOpenChange={(open) => {
-          if (!open) setRemoveTarget(null);
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove role</AlertDialogTitle>
-            <AlertDialogDescription>
-              Remove the <strong>{removeTarget?.role}</strong> role from{" "}
-              <strong>{removeTarget?.user.name}</strong>? This action can be
-              undone by re-assigning the role.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={actionLoading}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleRemoveRole}
-              disabled={actionLoading}
-              className="bg-red-600 hover:bg-red-500"
-            >
-              {actionLoading ? "Removing..." : "Remove role"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

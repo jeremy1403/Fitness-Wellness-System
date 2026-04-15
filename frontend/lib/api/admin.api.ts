@@ -164,4 +164,18 @@ export const adminApi = {
 
     return parseUserResponse(response);
   },
+
+  async changeRole(id: number, currentRoles: UserRole[], newRole: string) {
+    for (const role of currentRoles) {
+      if (role !== newRole) {
+        await adminApi.removeRole(id, role);
+      }
+    }
+
+    if (!currentRoles.includes(newRole as UserRole)) {
+      return adminApi.assignRole(id, newRole);
+    }
+
+    return adminApi.getUser(id);
+  },
 };

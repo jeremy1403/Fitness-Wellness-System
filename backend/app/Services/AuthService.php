@@ -5,6 +5,7 @@ namespace App\Services;
 use App\DTOs\Auth\LoginData;
 use App\DTOs\Auth\RegisterUserData;
 use App\Models\User;
+use App\Repositories\Contracts\TrainerRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Support\AppLogger;
 use Illuminate\Support\Facades\Hash;
@@ -14,6 +15,7 @@ class AuthService
 {
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
+        private readonly TrainerRepositoryInterface $trainerRepository,
     ) {}
 
     public function register(RegisterUserData $data): array
@@ -21,6 +23,14 @@ class AuthService
         $user = $this->userRepository->create($data->toArray());
 
         $this->userRepository->assignRole($user, $data->role);
+
+        if ($data->role === 'trainer') {
+            $this->trainerRepository->create([
+                'user_id'   => $user->id,
+                'specialty' => $data->specialty ?? 'General Fitness',
+                'status'    => 'active',
+            ]);
+        }
 
         $token = $user->createToken('auth-token')->plainTextToken;
 

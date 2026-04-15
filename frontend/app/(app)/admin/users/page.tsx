@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Users, UserCheck, UserX, MoreHorizontal, Search } from "lucide-react";
+import { useAuth } from "@/lib/auth/context";
 import { ApiError } from "@/lib/api/http";
 import {
   adminApi,
@@ -26,6 +27,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("en-US", {
@@ -46,6 +52,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 export default function AdminUsersPage() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<{ active: number; disabled: number; total: number } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -209,65 +216,87 @@ export default function AdminUsersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium text-slate-900">
-                      {user.name}
-                    </TableCell>
-                    <TableCell className="text-slate-500">
-                      {user.email}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          user.status === "active" ? "default" : "destructive"
-                        }
-                        className={
-                          user.status === "active"
-                            ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                            : ""
-                        }
-                      >
-                        {user.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {user.roles.map((role) => (
-                          <Badge key={role} variant="outline" className="text-xs">
-                            {role}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-slate-500">
-                      {formatDate(user.created_at)}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            disabled={actionLoading === user.id}
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => toggleStatus(user)}
-                          >
-                            {user.status === "active"
-                              ? "Disable user"
-                              : "Enable user"}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {filtered.map((user) => {
+                  const isSelf = currentUser?.id === user.id;
+
+                  return (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium text-slate-900">
+                        {user.name}
+                      </TableCell>
+                      <TableCell className="text-slate-500">
+                        {user.email}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            user.status === "active" ? "default" : "destructive"
+                          }
+                          className={
+                            user.status === "active"
+                              ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                              : ""
+                          }
+                        >
+                          {user.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {user.roles.map((role) => (
+                            <Badge key={role} variant="outline" className="text-xs">
+                              {role}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-slate-500">
+                        {formatDate(user.created_at)}
+                      </TableCell>
+                      <TableCell>
+                        {isSelf ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                disabled
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              You cannot modify your own account
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                disabled={actionLoading === user.id}
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => toggleStatus(user)}
+                              >
+                                {user.status === "active"
+                                  ? "Disable user"
+                                  : "Enable user"}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}

@@ -18,6 +18,7 @@ class RegisterRequest extends FormRequest
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['sometimes', 'string', 'in:admin,trainer,member'],
+            'specialty' => ['sometimes', 'nullable', 'string', 'max:100', 'required_if:role,trainer'],
         ];
     }
 
@@ -28,6 +29,7 @@ class RegisterRequest extends FormRequest
             'password.confirmed' => 'Password confirmation does not match.',
             'password.min' => 'Password must be at least 8 characters.',
             'role.in' => 'Role must be one of: admin, trainer, member.',
+            'specialty.required_if' => 'Specialty is required when registering as a trainer.',
         ];
     }
 }
