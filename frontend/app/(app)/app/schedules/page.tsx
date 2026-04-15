@@ -171,10 +171,16 @@ export default function UserSchedulesPage() {
                 Select Class
                 <select value={classId} onChange={(e) => setClassId(e.target.value)} required className="mt-2 w-full rounded-2xl border px-4 py-3 bg-white outline-none">
                   <option value="" disabled>Choose a fitness class...</option>
-                  {classes.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                  {classes
+                    .filter(c => c.status === 'active') // 只保留 status 为 active 的课
+                    .map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.title}
+                      </option>
+                    ))
+                  }
                 </select>
               </label>
-
               <label className="text-sm font-medium sm:col-span-2 text-slate-700">
                 Assign Trainer
                 <select value={trainerId} onChange={(e) => setTrainerId(e.target.value)} required className="mt-2 w-full rounded-2xl border px-4 py-3 bg-white outline-none">
@@ -229,6 +235,9 @@ export default function UserSchedulesPage() {
         ) : scheduleList.length === 0 ? (
           <div className="text-center py-10 text-slate-400 bg-slate-50 rounded-3xl border border-dashed border-slate-200">No schedules found.</div>
         ) : scheduleList.map((item) => {
+          if (item.fitness_class?.status !== 'active') {
+            return null;
+          }
           const start = formatDisplayDate(item.start_datetime);
           const end = formatDisplayDate(item.end_datetime);
 

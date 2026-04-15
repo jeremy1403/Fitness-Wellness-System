@@ -5,7 +5,7 @@ export interface FitnessClassData {
   description: string;
   duration_minutes: number;
   capacity?: number;
-  status?: string; // 添加 status 字段
+  status?: string; 
   setup_mode?: 'simple' | 'automated';
   class_type?: 'Yoga' | 'Spin' | 'HIIT' | 'General';
 }

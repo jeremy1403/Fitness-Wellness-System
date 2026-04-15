@@ -24,13 +24,24 @@ class ClassScheduleController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'fitness_class_id' => 'required|exists:fitness_classes,id',
-            'trainer_id'       => 'required|exists:users,id',
-            'start_datetime'       => 'required|date',
-            'end_datetime'         => 'required|date|after:start_datetime',
-            'capacity'         => 'required|integer',
+            // 1. 验证课程 ID，并检查是否已经分配给该教练
+            'fitness_class_id' => [
+                'required',
+                'exists:fitness_classes,id',
+                \Illuminate\Validation\Rule::unique('class_schedules')->where(function ($query) use ($request) {
+                    return $query->where('trainer_id', $request->trainer_id);
+                }),
+            ],
+            'trainer_id' => 'required|exists:users,id', 
+            
+            'start_datetime' => 'required|date',
+            'end_datetime'   => 'required|date|after:start_datetime',
+            'capacity'       => 'required|integer',
+        ], [
+            'fitness_class_id.unique' => 'This class has already been assigned to this trainer!',
         ]);
 
+        // 现在的 $validated 包含了所有字段，包括 trainer_id
         $schedule = ClassSchedule::create($validated);
 
         return response()->json([

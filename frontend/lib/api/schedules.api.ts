@@ -57,7 +57,7 @@ export const getTrainers = async () => {
 export const updateSchedule = async (id: number | string, data: any) => {
   const url = backendUrl(`/schedules/${id}`);
   const response = await fetch(url, {
-    method: "PUT", // 或者根据你的后端 API 使用 "PATCH"
+    method: "PUT", 
     credentials: "include",
     headers: {
       "Content-Type": "application/json",

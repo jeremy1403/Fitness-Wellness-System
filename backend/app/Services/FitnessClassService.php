@@ -38,7 +38,7 @@ class FitnessClassService
                 'title'            => $data['title'],
                 'description'      => $data['description'] ?? null,
                 'duration_minutes' => $data['duration_minutes'] ?? 60,
-                'status'           => 'active',
+                'status'           => $data['status'] ?? 'active',
             ]);
 
             // 2. The Strategy handles ALL the specific setup details

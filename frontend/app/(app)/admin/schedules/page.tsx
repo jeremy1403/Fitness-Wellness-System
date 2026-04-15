@@ -186,7 +186,12 @@ export default function AdminCreateSchedulePage() {
               Select Class
               <select value={classId} onChange={(e) => setClassId(e.target.value)} required className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 bg-white">
                 <option value="" disabled>Choose a fitness class...</option>
-                {classes.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                {classes
+                  .filter(c => c.status === 'active') // 只有 active 的课才会出现在下拉框
+                  .map(c => (
+                    <option key={c.id} value={c.id}>{c.title}</option>
+                  ))
+                }
               </select>
             </label>
 
