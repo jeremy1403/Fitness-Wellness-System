@@ -38,5 +38,3 @@ class Booking extends Model
         return $this->status === 'cancelled';
     }
 }
-
-etg
