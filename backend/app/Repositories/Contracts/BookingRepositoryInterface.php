@@ -18,4 +18,6 @@ interface BookingRepositoryInterface
     public function create(array $data): Booking;
 
     public function update(Booking $booking, array $data): Booking;
+
+    public function countBookingsForSchedule(int $scheduleId): int;
 }

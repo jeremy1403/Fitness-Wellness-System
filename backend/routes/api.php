@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\BookingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,6 +23,13 @@ Route::prefix('v1')->group(function () {
     // Route::prefix('classes')->group(base_path('routes/api/classes.php'));
 
     // Module 3: Bookings
+    
+
+    Route::middleware('auth:sanctum')->prefix('bookings')->group(function () {
+    Route::post('/', [BookingController::class, 'store']);
+    Route::get('/history', [BookingController::class, 'history']);
+    Route::post('/{id}/cancel', [BookingController::class, 'cancel']);
+    });
     // Route::prefix('bookings')->group(base_path('routes/api/bookings.php'));
 
     // Module 4: Memberships & Payments
