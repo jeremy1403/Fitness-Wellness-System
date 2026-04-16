@@ -9,6 +9,7 @@ class RegisterUserData
         public readonly string $email,
         public readonly string $password,
         public readonly string $role = 'member',
+        public readonly ?string $specialty = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -18,6 +19,7 @@ class RegisterUserData
             email: $data['email'],
             password: $data['password'],
             role: $data['role'] ?? 'member',
+            specialty: $data['specialty'] ?? null,
         );
     }
 

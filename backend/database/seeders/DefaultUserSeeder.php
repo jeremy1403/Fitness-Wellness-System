@@ -26,6 +26,7 @@ class DefaultUserSeeder extends Seeder
             'name' => 'Default Trainer',
             'email' => 'trainer@fitness.test',
             'role' => 'trainer',
+            'specialty' => 'General Fitness',
         ],
         [
             'name' => 'Default Member',
@@ -59,6 +60,13 @@ class DefaultUserSeeder extends Seeder
 
             if ($role) {
                 $user->roles()->syncWithoutDetaching([$role->id]);
+            }
+
+            if ($userData['role'] === 'trainer') {
+                $user->trainer()->firstOrCreate([], [
+                    'specialty' => $userData['specialty'] ?? 'General Fitness',
+                    'status' => 'active',
+                ]);
             }
         }
     }
