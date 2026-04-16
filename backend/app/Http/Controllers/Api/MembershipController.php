@@ -1,0 +1,134 @@
+<?php
+namespace App\Http\Controllers\Api;
+
+use App\DTOs\Membership\SubscribeToPlanData;
+use App\DTOs\Membership\UpdateSubscriptionData;
+use App\Http\Controllers\Controller;
+use App\Services\MembershipService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class MembershipController extends Controller
+{
+    public function __construct(
+        private readonly MembershipService $membershipService,
+    ) {}
+
+    // GET /api/v1/memberships/plans
+    // Returns all active plans (for members to browse)
+    public function getPlans(): JsonResponse
+    {
+        $plans = $this->membershipService->getActivePlans();
+        return response()->json([
+            'message' => 'Plans retrieved successfully.',
+            'data'    => $plans,
+        ]);
+    }
+
+    // GET /api/v1/memberships/plans/all
+    // Returns all plans (for admin)
+    public function getAllPlans(): JsonResponse
+    {
+        $plans = $this->membershipService->getAllPlans();
+        return response()->json([
+            'message' => 'All plans retrieved successfully.',
+            'data'    => $plans,
+        ]);
+    }
+
+    // GET /api/v1/memberships/my
+    // Returns current user's active membership
+    public function myMembership(Request $request): JsonResponse
+    {
+        $membership = $this->membershipService->getActiveMembership(
+            $request->user()->id
+        );
+        return response()->json([
+            'message' => 'Active membership retrieved.',
+            'data'    => $membership,
+        ]);
+    }
+
+    // GET /api/v1/memberships/history
+    // Returns all memberships for current user
+    public function myHistory(Request $request): JsonResponse
+    {
+        $memberships = $this->membershipService->getUserMemberships(
+            $request->user()->id
+        );
+        return response()->json([
+            'message' => 'Membership history retrieved.',
+            'data'    => $memberships,
+        ]);
+    }
+
+    // POST /api/v1/memberships/subscribe
+    // Subscribe current user to a plan
+    public function subscribe(Request $request): JsonResponse
+    {
+        $request->validate([
+            'plan_id'        => 'required|integer|exists:membership_plans,id',
+            'payment_method' => 'required|string|in:cash,transfer,card_mock',
+        ]);
+
+        $membership = $this->membershipService->subscribe(
+            new SubscribeToPlanData(
+                userId:        $request->user()->id,
+                planId:        $request->plan_id,
+                paymentMethod: $request->payment_method,
+            )
+        );
+
+        return response()->json([
+            'message' => 'Successfully subscribed to plan.',
+            'data'    => $membership->load('plan'),
+        ], 201);
+    }
+
+    // PUT /api/v1/memberships/{id}/cancel
+    // Cancel a membership
+    public function cancel(Request $request, int $id): JsonResponse
+    {
+        $membership = $this->membershipService->cancel($id, $request->user()->id);
+        return response()->json([
+            'message' => 'Membership cancelled successfully.',
+            'data'    => $membership,
+        ]);
+    }
+
+    // PUT /api/v1/memberships/{id}/status
+    // Admin only - update membership status
+    public function updateStatus(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'status' => 'required|string|in:active,expired,cancelled',
+        ]);
+
+        $membership = $this->membershipService->updateStatus(
+            $id,
+            new UpdateSubscriptionData(status: $request->status)
+        );
+
+        return response()->json([
+            'message' => 'Membership status updated.',
+            'data'    => $membership,
+        ]);
+    }
+
+    // GET /api/v1/memberships/status
+    // Returns subscription status (exposed for other modules to consume)
+    public function getSubscriptionStatus(Request $request): JsonResponse
+    {
+        $membership = $this->membershipService->getActiveMembership(
+            $request->user()->id
+        );
+
+        return response()->json([
+            'message' => 'Subscription status retrieved.',
+            'data'    => [
+                'is_active'  => $membership !== null,
+                'membership' => $membership,
+            ],
+        ]);
+    }
+}
