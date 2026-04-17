@@ -30,7 +30,7 @@ class PaymentController extends Controller
 
     // GET /api/v1/payments/{id}
     // Returns a single payment (receipt)
-    public function show(Request $request, int $id): JsonResponse
+    public function show(Request $request, string $id): JsonResponse
     {
         $payment = $this->paymentService->getPaymentById($id);
 
