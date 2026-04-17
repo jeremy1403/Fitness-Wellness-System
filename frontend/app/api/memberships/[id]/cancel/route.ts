@@ -1,11 +1,13 @@
 import { membershipBackendJson, jsonResponse } from "../../_helpers";
+import { NextRequest } from "next/server";
 
 export async function PUT(
-  _request: Request,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const { res, data } = await membershipBackendJson(
-    `/memberships/${params.id}/cancel`,
+    `/memberships/${id}/cancel`,
     { method: "PUT" }
   );
   return jsonResponse(data, res.status);
