@@ -19,6 +19,7 @@ protected $fillable = [
         'capacity',
         'setup_mode',
         'status',
+        'created_by'
     ];
 
     protected $casts = [

@@ -14,7 +14,8 @@ type SetupMode = "automated" | "simple";
 type ClassType = "Yoga" | "Spin" | "HIIT" | "General";
 
 export default function UserClassesPage() {
-  const { primaryRole } = useAuth(); // 获取角色 (trainer, member, admin)
+  // const { primaryRole } = useAuth(); // 获取角色 (trainer, member, admin)
+  const { primaryRole, user } = useAuth(); // 把 user 也解构出来
   const [classList, setClassList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -94,6 +95,7 @@ export default function UserClassesPage() {
         description: description,
         duration_minutes: setupMode === 'simple' ? durationMinutes : getAutoDuration(),
         status: status,
+        user_id: user?.id,
       };
 
       if (editingId) {
@@ -221,6 +223,10 @@ export default function UserClassesPage() {
             <p className="col-span-full py-10 text-center text-slate-400">No classes found.</p>
           ) : classList.map((cls) => {
             if (primaryRole !== 'trainer' && cls.status === 'inactive') {
+              return null;
+            }
+            // 2. 如果是 Trainer，并且这堂课【不是】自己建的，也【不是】Admin(ID 1)建的，就隐藏掉
+            if (primaryRole === 'trainer' && cls.created_by !== user?.id && cls.created_by !== 1) {
               return null;
             }
 

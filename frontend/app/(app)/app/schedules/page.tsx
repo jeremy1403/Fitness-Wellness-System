@@ -222,7 +222,8 @@ export default function UserSchedulesPage() {
                 <select value={classId} onChange={(e) => setClassId(e.target.value)} required className="mt-2 w-full rounded-2xl border px-4 py-3 bg-white outline-none">
                   <option value="" disabled>Choose a fitness class...</option>
                   {classes
-                    .filter(c => c.status === 'active') // 只保留 status 为 active 的课
+                    // 过滤条件：必须是 active，且 (创建者是自己 或者 创建者是 1)
+                    .filter(c => c.status === 'active' && (c.created_by === user?.id || c.created_by === 1)) 
                     .map(c => (
                       <option key={c.id} value={c.id}>
                         {c.title}

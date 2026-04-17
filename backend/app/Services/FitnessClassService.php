@@ -6,7 +6,7 @@ use App\Models\FitnessClass;
 use App\Repositories\Contracts\FitnessClassRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Support\Facades\Auth;
 
 class FitnessClassService
 {
@@ -16,7 +16,22 @@ class FitnessClassService
 
     public function getAllClasses(): Collection
     {
-        return $this->repository->all();
+        $user = Auth::user();
+
+        // 如果没有登录（没用 auth:sanctum），Auth::user() 会是 null
+        // 为了防止报错，我们加个判断
+        if (!$user) {
+            // 如果没登录，返回全部或者根据你的需求处理
+            return FitnessClass::all(); 
+        }
+
+        // Admin (role 为 1) 看全部
+        if ($user->role === 1) { 
+            return FitnessClass::all();
+        }
+
+        // Trainer 只看自己
+        return FitnessClass::where('created_by', $user->id)->get();
     }
 
     public function getActiveClasses(): Collection
@@ -39,6 +54,7 @@ class FitnessClassService
                 'description'      => $data['description'] ?? null,
                 'duration_minutes' => $data['duration_minutes'] ?? 60,
                 'status'           => $data['status'] ?? 'active',
+                'created_by'       => $data['created_by'],
             ]);
 
             // 2. The Strategy handles ALL the specific setup details

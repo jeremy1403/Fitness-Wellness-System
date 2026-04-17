@@ -27,7 +27,8 @@ class StoreFitnessClassRequest extends FormRequest
             'title' => 'required|string|max:100', // 限制长度防止数据库溢出或拒绝服务攻击
             'description' => 'nullable|string|max:1000',
             'duration_minutes' => 'sometimes|integer|min:15|max:480',
-            'status' => 'required|in:active,inactive'
+            'status' => 'required|in:active,inactive',
+            'user_id' => 'nullable|integer',
         ];
     }
     
