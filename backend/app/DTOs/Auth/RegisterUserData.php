@@ -9,4 +9,14 @@ class RegisterUserData
         public readonly string $password,
         public readonly string $role,
     ) {}
+
+    public static function fromArray(array $data): self
+    {
+        return new self(
+            name: $data['name'],
+            email: $data['email'],
+            password: $data['password'],
+            role: $data['role'] ?? 'member',
+        );
+    }
 }
