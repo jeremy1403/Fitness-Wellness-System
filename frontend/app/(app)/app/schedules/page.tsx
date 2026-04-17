@@ -31,7 +31,43 @@ export default function UserSchedulesPage() {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  // 1. 初始化数据
+// 1. 初始化数据
+  // const loadInitialData = async () => {
+  //   try {
+  //     setLoading(true);
+  //     const [classesData, trainersData, schedulesData] = await Promise.all([
+  //       getFitnessClasses(),
+  //       getTrainers(),
+  //       getSchedules()
+  //     ]);
+      
+  //     const trainersList = trainersData.data || trainersData;
+      
+  //     setClasses(classesData.data || classesData);
+  //     setTrainers(trainersList);
+  //     setScheduleList(schedulesData.data || schedulesData);
+
+  //     // --- 关键修复：把 User ID 转换成 Trainer ID ---
+  //     if (primaryRole === 'trainer' && user) {
+  //       // 既然没有 user_id，我们用 name 来匹配！
+  //       const myTrainerProfile = trainersList.find(
+  //         (t: any) => t.name === user.name
+  //       );
+
+  //       if (myTrainerProfile) {
+  //         setTrainerId(String(myTrainerProfile.id)); 
+  //         console.log("成功通过名字匹配到教练 ID:", myTrainerProfile.id);
+  //       } else {
+  //         console.error("无法通过名字匹配教练档案");
+  //       }
+  //     }
+  //   } catch (err) {
+  //     setError("Could not load initial data.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+  // 1. 初始化数据 (修改后)
   const loadInitialData = async () => {
     try {
       setLoading(true);
@@ -40,14 +76,12 @@ export default function UserSchedulesPage() {
         getTrainers(),
         getSchedules()
       ]);
+      
       setClasses(classesData.data || classesData);
       setTrainers(trainersData.data || trainersData);
       setScheduleList(schedulesData.data || schedulesData);
-
-      // 如果当前用户是 Trainer，默认选中自己
-      if (primaryRole === 'trainer' && user) {
-        setTrainerId(String(user.id));
-      }
+      
+      // 匹配逻辑被移走了！这里干干净净。
     } catch (err) {
       setError("Could not load initial data.");
     } finally {
@@ -57,6 +91,22 @@ export default function UserSchedulesPage() {
 
   useEffect(() => { loadInitialData(); }, []);
 
+  useEffect(() => {
+    // 只有当角色是教练，且 user 数据加载完毕，且 trainers 列表也加载完毕时才执行
+    if (primaryRole === 'trainer' && user && trainers.length > 0) {
+      const myTrainerProfile = trainers.find(
+        (t: any) => t.name === user.name
+      );
+
+      if (myTrainerProfile) {
+        setTrainerId(String(myTrainerProfile.id)); 
+        console.log("【成功锁定】教练表ID已被设置为:", myTrainerProfile.id);
+      } else {
+        console.error("【匹配失败】在教练名单中找不到名字为", user.name, "的教练");
+      }
+    }
+  }, [user, primaryRole, trainers]); // 只要这三个变量有变化，就重新运行
+  
   // 2. 自动化策略：计算结束时间
   useEffect(() => {
     const selectedClass = classes.find(c => String(c.id) === String(classId));
@@ -181,12 +231,26 @@ export default function UserSchedulesPage() {
                   }
                 </select>
               </label>
+                {/* 将原来的 select 替换为这个只读显示 */}
               <label className="text-sm font-medium sm:col-span-2 text-slate-700">
                 Assign Trainer
-                <select value={trainerId} onChange={(e) => setTrainerId(e.target.value)} required className="mt-2 w-full rounded-2xl border px-4 py-3 bg-white outline-none">
-                  <option value="" disabled>Choose a trainer...</option>
-                  {trainers.map(t => <option key={t.id} value={t.id}>{t.name} {t.id === user?.id ? "(Me)" : ""}</option>)}
-                </select>
+                <div className="mt-2 w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-slate-600 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{user?.name}</span>
+                    <span className="text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full font-bold">
+                      ME
+                    </span>
+                  </div>
+                  {/* 如果 trainerId 为空，显示一个小警告，方便你调试 */}
+                  {!trainerId && <span className="text-[10px] text-red-500 font-bold">ID NOT FOUND!</span>}
+                  
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                </div>
+
+                {/* 核心改动：这里必须传 trainerId 状态，而不是 user.id */}
+                <input type="hidden" value={trainerId} />
               </label>
 
               <label className="text-sm font-medium text-slate-700">

@@ -34,11 +34,12 @@ class ClassScheduleController extends Controller
             ],
             'trainer_id' => 'required|exists:trainers,id',
             
-            'start_datetime' => 'required|date',
+            'start_datetime'   => 'required|date|after:now',
             'end_datetime'   => 'required|date|after:start_datetime',
-            'capacity'       => 'required|integer',
+            'capacity'         => 'required|integer|min:1|max:30',
         ], [
             'fitness_class_id.unique' => 'This class has already been assigned to this trainer!',
+            'start_datetime.after' => 'The start time cannot be in the past.',
         ]);
 
         // 现在的 $validated 包含了所有字段，包括 trainer_id

@@ -53,13 +53,23 @@ export default function UserClassesPage() {
     setEditingId(cls.id);
     setName(cls.title);
     setDescription(cls.description || "");
+    
+    // 核心修改：设置 Class Type 和 Duration
+    setClassType(cls.class_type || "General");
     setDurationMinutes(cls.duration_minutes);
-    setStatus(cls.status||"active");
-    setSetupMode(cls.setup_mode || "automated");
-    setClassType(cls.class_type || "Yoga");
+    
+    // 逻辑判断：如果数据库里的时间不符合预设策略，自动切换到 simple 模式
+    const autoTime = { 'Yoga': 60, 'Spin': 45, 'HIIT': 30, 'General': 60 }[cls.class_type as ClassType];
+    if (cls.duration_minutes !== autoTime) {
+      setSetupMode("simple");
+    } else {
+      setSetupMode("automated");
+    }
+
+    setStatus(cls.status || "active");
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
+  
   const cancelEdit = () => {
     setEditingId(null);
     setName("");

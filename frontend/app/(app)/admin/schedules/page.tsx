@@ -202,6 +202,26 @@ export default function AdminCreateSchedulePage() {
                 {trainers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             </label>
+            {/* <label className="text-sm font-medium text-slate-700 sm:col-span-2">
+              Assign Trainer
+              <select value={trainerId} 
+                onChange={(e) => setTrainerId(e.target.value)} 
+                required 
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 bg-white"
+              >
+                <option value="" disabled>Choose a trainer...</option>
+                
+                {trainers && trainers.length > 0 ? (
+                  trainers.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.user?.name || t.name} (ID: {t.id})
+                    </option>
+                  ))
+                ) : (
+                  <option disabled>No trainers found</option>
+                )}
+              </select>
+            </label> */}
 
             <label className="text-sm font-medium text-slate-700">
               Start Time
