@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use App\DTOs\Membership\SubscribeToPlanData;
@@ -81,7 +82,7 @@ class MembershipService
                 'status'             => 'active',
             ]);
 
-            AppLogger::info('User subscribed to plan', [
+            AppLogger::info('membership', 'User subscribed to plan', [
                 'user_id' => $data->userId,
                 'plan_id' => $plan->id,
             ]);

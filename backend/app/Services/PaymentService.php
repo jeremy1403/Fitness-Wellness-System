@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use App\DTOs\Membership\ProcessPaymentData;
@@ -52,7 +53,7 @@ class PaymentService
                 'reference_no'  => $this->generateReferenceNo(),
             ]);
 
-            AppLogger::info('Payment processed', [
+            AppLogger::info('payment', 'Payment processed', [
                 'user_id'      => $data->userId,
                 'payment_id'   => $payment->id,
                 'reference_no' => $payment->reference_no,

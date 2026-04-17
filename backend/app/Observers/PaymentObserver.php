@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Observers;
 
 use App\Models\Payment;
@@ -31,7 +32,7 @@ class PaymentObserver
             'status'   => 'active',
         ]);
 
-        AppLogger::info('Membership expiry updated via PaymentObserver', [
+        AppLogger::info('membership', 'Membership expiry updated via PaymentObserver', [
             'payment_id'    => $payment->id,
             'membership_id' => $membership->id,
             'new_end_date'  => $newEndDate,
