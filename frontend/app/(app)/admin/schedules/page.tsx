@@ -42,8 +42,8 @@ export default function AdminCreateSchedulePage() {
         getSchedules()
       ]);
       setClasses(classesData.data || classesData);
-      setTrainers(trainersData.data || trainersData);
-      setScheduleList(schedulesData.data || schedulesData);
+      setTrainers(trainersData);
+      setScheduleList(schedulesData);
     } catch (err) {
       setError("Could not load initial data.");
     } finally {

@@ -51,6 +51,18 @@ class AppLogger
     }
 
     /**
+     * Log a Provider-decorated request trace to storage/logs/provider.log and stderr.
+     */
+    public static function provider(string $action, string $requestId, string $timestamp): void
+    {
+        Log::channel('provider')->info("[PROVIDER] {$action}", [
+            'request_id' => $requestId,
+            'action' => $action,
+            'timestamp' => $timestamp,
+        ]);
+    }
+
+    /**
      * Format message with module prefix for easy grep/filtering.
      */
     private static function format(string $module, string $message): string

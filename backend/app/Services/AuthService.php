@@ -26,9 +26,9 @@ class AuthService
 
         if ($data->role === 'trainer') {
             $this->trainerRepository->create([
-                'user_id'   => $user->id,
+                'user_id' => $user->id,
                 'specialty' => $data->specialty ?? 'General Fitness',
-                'status'    => 'active',
+                'status' => 'active',
             ]);
         }
 

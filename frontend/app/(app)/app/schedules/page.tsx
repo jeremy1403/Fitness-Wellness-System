@@ -78,10 +78,9 @@ export default function UserSchedulesPage() {
       ]);
       
       setClasses(classesData.data || classesData);
-      setTrainers(trainersData.data || trainersData);
-      setScheduleList(schedulesData.data || schedulesData);
-      
-      // 匹配逻辑被移走了！这里干干净净。
+      setTrainers(trainersData);
+      setScheduleList(schedulesData);
+
     } catch (err) {
       setError("Could not load initial data.");
     } finally {

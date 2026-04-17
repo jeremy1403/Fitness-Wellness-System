@@ -82,22 +82,6 @@ function formatScheduleTime(dateStr: string) {
   });
 }
 
-function normalizeSchedulesResponse(value: unknown): ClassSchedule[] {
-  if (Array.isArray(value)) {
-    return value as ClassSchedule[];
-  }
-
-  if (typeof value === "object" && value !== null && "data" in value) {
-    const data = (value as { data?: unknown }).data;
-
-    if (Array.isArray(data)) {
-      return data as ClassSchedule[];
-    }
-  }
-
-  throw new Error("Invalid schedules response received from backend.");
-}
-
 function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof ApiError || error instanceof Error) {
     return error.message;
@@ -122,11 +106,11 @@ export default function AdminTrainersPage() {
     try {
       const [usersRes, schedulesRes] = await Promise.all([
         adminApi.getUsers(),
-        getSchedules(),
+        getSchedules<ClassSchedule>(),
       ]);
 
       setTrainers(usersRes.data.filter((u) => u.roles.includes("trainer")));
-      setSchedules(normalizeSchedulesResponse(schedulesRes));
+      setSchedules(schedulesRes);
     } catch (error) {
       setLoadError(
         getErrorMessage(error, "Unable to load trainers right now."),

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\TrainerResource;
 use App\Http\Resources\UserResource;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
@@ -20,6 +21,15 @@ class UserController extends Controller
 
         return response()->json([
             'data' => UserResource::collection($users),
+        ]);
+    }
+
+    public function trainers(): JsonResponse
+    {
+        $trainers = $this->userService->getAllActiveTrainers();
+
+        return response()->json([
+            'data' => TrainerResource::collection($trainers),
         ]);
     }
 

@@ -4,23 +4,24 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ClassSchedule;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ClassScheduleController extends Controller
 {
-    //Retrieve all course schedules  including related data
+    // Retrieve all course schedules  including related data
     public function index(): JsonResponse
     {
         $schedules = ClassSchedule::with(['fitnessClass', 'trainer.user'])
             ->latest('start_datetime')
             ->get();
 
-        return response()->json($schedules);
+        return response()->json([
+            'data' => $schedules,
+        ]);
     }
-    
 
-    //Save new schedule
+    // Save new schedule
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -47,7 +48,7 @@ class ClassScheduleController extends Controller
 
         return response()->json([
             'message' => 'Schedule created successfully!',
-            'data' => $schedule->load(['fitnessClass', 'trainer.user'])
+            'data' => $schedule->load(['fitnessClass', 'trainer.user']),
         ], 201);
     }
 
@@ -55,15 +56,15 @@ class ClassScheduleController extends Controller
     {
         $validated = $request->validate([
             'fitness_class_id' => 'required',
-            'trainer_id'       => 'required',
-            'start_datetime'   => 'required|date',
-            'end_datetime'     => 'required|date',
-            'capacity'         => 'required|integer|min:1',
+            'trainer_id' => 'required',
+            'start_datetime' => 'required|date',
+            'end_datetime' => 'required|date',
+            'capacity' => 'required|integer|min:1',
         ]);
 
         $schedule = ClassSchedule::find($id);
 
-        if (!$schedule) {
+        if (! $schedule) {
             return response()->json(['message' => 'Schedule not found'], 404);
         }
 
@@ -71,15 +72,16 @@ class ClassScheduleController extends Controller
 
         return response()->json([
             'message' => 'Schedule updated successfully!',
-            'data' => $schedule
+            'data' => $schedule,
         ]);
     }
-    //Delete scheduling
+
+    // Delete scheduling
     public function destroy($id): JsonResponse
     {
         $schedule = ClassSchedule::find($id);
 
-        if (!$schedule) {
+        if (! $schedule) {
             return response()->json(['message' => 'Schedule not found'], 404);
         }
 

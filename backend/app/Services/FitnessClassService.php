@@ -1,12 +1,11 @@
 <?php
 
 namespace App\Services;
-use App\Services\Factories\ClassSetupFactory;
+
 use App\Models\FitnessClass;
 use App\Repositories\Contracts\FitnessClassRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
-
 
 class FitnessClassService
 {
@@ -35,15 +34,15 @@ class FitnessClassService
             // 1. Create the base record first
             // Use a fallback for duration_minutes so the DB doesn't crash if it's missing
             $fitnessClass = $this->repository->create([
-                'title'            => $data['title'],
-                'description'      => $data['description'] ?? null,
+                'title' => $data['title'],
+                'description' => $data['description'] ?? null,
                 'duration_minutes' => $data['duration_minutes'] ?? 60,
-                'status'           => $data['status'] ?? 'active',
+                'status' => $data['status'] ?? 'active',
             ]);
 
             // 2. The Strategy handles ALL the specific setup details
             $mode = $data['setup_mode'] ?? 'simple';
-            $strategy= \App\Services\Factories\ClassSetupFactory::make($mode);
+            $strategy = \App\Services\Factories\ClassSetupFactory::make($mode);
             $strategy->setup($fitnessClass, $data);
 
             return $fitnessClass;
@@ -54,8 +53,8 @@ class FitnessClassService
     {
         $fitnessClass = $this->repository->findById($id);
 
-        if (!$fitnessClass) {
-            throw new \Exception("Fitness class not found");
+        if (! $fitnessClass) {
+            throw new \Exception('Fitness class not found');
         }
 
         return $this->repository->update($fitnessClass, $data);
@@ -65,7 +64,7 @@ class FitnessClassService
     {
         $fitnessClass = $this->repository->findById($id);
 
-        if (!$fitnessClass) {
+        if (! $fitnessClass) {
             return false;
         }
 
