@@ -101,7 +101,7 @@ class MembershipController extends Controller
     public function updateStatus(Request $request, int $id): JsonResponse
     {
         $request->validate([
-            'status' => 'required|string|in:active,expired,cancelled',
+            'status' => 'required|string|in:active,inactive,expired,cancelled',
         ]);
 
         $membership = $this->membershipService->updateStatus(
