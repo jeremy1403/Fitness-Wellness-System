@@ -164,4 +164,28 @@ export const membershipApi = {
       }
     );
   },
+
+  // Admin - create plan
+  createPlan(data: Omit<MembershipPlan, 'id'>) {
+    return http<{ message: string; data: MembershipPlan }>(
+      "/plans",
+      {
+        method: "POST",
+        body: data,
+        baseUrl: "/api/memberships",
+      }
+    );
+  },
+
+  // Admin - update plan
+  updatePlan(planId: number, data: Omit<MembershipPlan, 'id'>) {
+    return http<{ message: string; data: MembershipPlan }>(
+      `/plans/${planId}`,
+      {
+        method: "PUT",
+        body: data,
+        baseUrl: "/api/memberships",
+      }
+    );
+  },
 };

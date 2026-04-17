@@ -55,5 +55,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Update plan status
         Route::put('/plans/{id}/status', [MembershipController::class, 'updatePlanStatus']);
+
+        // Create a new plan
+        Route::post('/plans', [MembershipController::class, 'createPlan']);
+        // Update a plan
+        Route::put('/plans/{id}', [MembershipController::class, 'updatePlan']);
     });
 });

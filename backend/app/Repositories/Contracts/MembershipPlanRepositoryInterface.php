@@ -14,4 +14,7 @@ interface MembershipPlanRepositoryInterface
     public function all(): Collection;
 
     public function getActive(): Collection;
+
+    public function create(array $data);
+    public function update(\App\Models\MembershipPlan $plan, array $data): \App\Models\MembershipPlan;
 }

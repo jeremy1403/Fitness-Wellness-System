@@ -11,6 +11,7 @@ use App\Support\AppLogger;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use App\DTOs\Membership\CreatePlanData;
 
 class MembershipService
 {
@@ -122,5 +123,36 @@ class MembershipService
         return $this->membershipRepository->update($membership, [
             'status' => $data->status,
         ]);
+    }
+
+    // Create a new plan
+    public function createPlan(CreatePlanData $data)
+    {
+        return $this->planRepository->create([
+            'name'                 => $data->name,
+            'price'                => $data->price,
+            'duration_days'        => $data->durationDays,
+            'booking_daily_limit'  => $data->bookingDailyLimit,
+            'booking_advance_days' => $data->bookingAdvanceDays,
+            'status'               => $data->status,
+        ]);
+    }
+
+    // Update an existing plan
+    public function updatePlan(int $planId, CreatePlanData $data)
+    {
+        $plan = $this->planRepository->findById($planId);
+        if (!$plan) {
+            throw new \Exception('Plan not found.');
+        }
+        $plan->update([
+            'name'                 => $data->name,
+            'price'                => $data->price,
+            'duration_days'        => $data->durationDays,
+            'booking_daily_limit'  => $data->bookingDailyLimit,
+            'booking_advance_days' => $data->bookingAdvanceDays,
+            'status'               => $data->status,
+        ]);
+        return $plan->fresh();
     }
 }

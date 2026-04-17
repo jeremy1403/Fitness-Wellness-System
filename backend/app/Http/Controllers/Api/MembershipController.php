@@ -150,4 +150,65 @@ class MembershipController extends Controller
             'data'    => $plan->fresh(),
         ]);
     }
+
+    // POST /api/v1/memberships/plans
+    // Admin only - create a new plan
+    public function createPlan(Request $request): JsonResponse
+    {
+        $request->validate([
+            'name'                 => 'required|string|unique:membership_plans,name',
+            'price'                => 'required|numeric|min:0',
+            'duration_days'        => 'required|integer|min:1',
+            'booking_daily_limit'  => 'required|integer|min:1',
+            'booking_advance_days' => 'required|integer|min:1',
+            'status'               => 'sometimes|string|in:active,inactive',
+        ]);
+
+        $plan = $this->membershipService->createPlan(
+            new CreatePlanData(
+                name: $request->name,
+                price: $request->price,
+                durationDays: $request->duration_days,
+                bookingDailyLimit: $request->booking_daily_limit,
+                bookingAdvanceDays: $request->booking_advance_days,
+                status: $request->status ?? 'active',
+            )
+        );
+
+        return response()->json([
+            'message' => 'Plan created successfully.',
+            'data'    => $plan,
+        ], 201);
+    }
+
+    // PUT /api/v1/memberships/plans/{id}
+    // Admin only - update a plan
+    public function updatePlan(Request $request, string $id): JsonResponse
+    {
+        $request->validate([
+            'name'                 => 'required|string',
+            'price'                => 'required|numeric|min:0',
+            'duration_days'        => 'required|integer|min:1',
+            'booking_daily_limit'  => 'required|integer|min:1',
+            'booking_advance_days' => 'required|integer|min:1',
+            'status'               => 'sometimes|string|in:active,inactive',
+        ]);
+
+        $plan = $this->membershipService->updatePlan(
+            (int) $id,
+            new CreatePlanData(
+                name: $request->name,
+                price: $request->price,
+                durationDays: $request->duration_days,
+                bookingDailyLimit: $request->booking_daily_limit,
+                bookingAdvanceDays: $request->booking_advance_days,
+                status: $request->status ?? 'active',
+            )
+        );
+
+        return response()->json([
+            'message' => 'Plan updated successfully.',
+            'data'    => $plan,
+        ]);
+    }
 }

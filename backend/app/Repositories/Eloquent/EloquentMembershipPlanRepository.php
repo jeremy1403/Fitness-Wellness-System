@@ -27,4 +27,15 @@ class EloquentMembershipPlanRepository implements MembershipPlanRepositoryInterf
     {
         return MembershipPlan::where('status', 'active')->get();
     }
+
+    public function create(array $data): MembershipPlan
+    {
+        return MembershipPlan::create($data);
+    }
+
+    public function update(MembershipPlan $plan, array $data): MembershipPlan
+    {
+        $plan->update($data);
+        return $plan->fresh();
+    }
 }
