@@ -27,6 +27,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::put('/profile', [AuthController::class, 'updateProfile']);
 
+    Route::get('/trainers', [UserController::class, 'trainers'])
+        ->middleware(['provider:getAllActiveTrainers', 'consumer']);
+
     // ── Admin-only: User management ─────────────────────────────────────
     Route::middleware('role:admin')->prefix('users')->group(function () {
         Route::get('/', [UserController::class, 'index']);

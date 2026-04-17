@@ -4,10 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Classes\StoreFitnessClassRequest; // 新增：自定义 Request
+use App\Models\FitnessClass;
 use App\Services\FitnessClassService;
 use Illuminate\Http\JsonResponse;
-use App\Models\FitnessClass;
-
 
 class FitnessClassController extends Controller
 {
@@ -20,6 +19,7 @@ class FitnessClassController extends Controller
     {
         // 统一通过 Service 获取数据
         $classes = $this->fitnessClassService->getAllClasses();
+
         return response()->json($classes);
     }
 
@@ -63,14 +63,15 @@ class FitnessClassController extends Controller
 
         return response()->json([
             'message' => 'Created successfully!',
-            'data' => $fitnessClass
+            'data' => $fitnessClass,
         ], 201);
     }
+
     public function update(StoreFitnessClassRequest $request, int $id): JsonResponse
     {
         // 1. 查找是否存在
         $fitnessClass = FitnessClass::find($id);
-        if (!$fitnessClass) {
+        if (! $fitnessClass) {
             return response()->json(['message' => 'Class not found'], 404);
         }
 
@@ -84,7 +85,7 @@ class FitnessClassController extends Controller
 
         return response()->json([
             'message' => 'Updated successfully!',
-            'data' => $fitnessClass
+            'data' => $fitnessClass,
         ], 200);
     }
 
@@ -92,7 +93,7 @@ class FitnessClassController extends Controller
     {
         $deleted = $this->fitnessClassService->deleteClass($id);
 
-        if (!$deleted) {
+        if (! $deleted) {
             return response()->json(['message' => 'Class not found or could not be deleted'], 404);
         }
 

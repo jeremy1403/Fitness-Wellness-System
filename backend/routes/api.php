@@ -1,10 +1,11 @@
 <?php
 
+use App\Http\Controllers\Api\ClassScheduleController;
+use App\Http\Controllers\Api\FitnessClassController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\FitnessClassController;
-use App\Http\Controllers\Api\ClassScheduleController;
-//use App\Http\Controllers\Api\TrainerController;
+
+// use App\Http\Controllers\Api\TrainerController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -22,17 +23,12 @@ Route::prefix('v1')->group(function () {
 
     // Module 2: Fitness Classes & Schedules
     Route::apiResource('classes', FitnessClassController::class);
-    Route::apiResource('schedules', ClassScheduleController::class);
-    Route::get('trainers', function() {
-        return \App\Models\Trainer::with('user')
-            ->where('status', 'active')
-            ->get()
-            ->map(fn($t) => [
-                'id'        => $t->id,
-                'name'      => $t->user?->name ?? '',
-                'specialty' => $t->specialty,
-            ]);
-    });
+    Route::get('schedules', [ClassScheduleController::class, 'index'])
+        ->middleware(['provider:getAllSchedules', 'consumer'])
+        ->name('schedules.index');
+    Route::apiResource('schedules', ClassScheduleController::class)
+        ->except(['index']);
+
     // Module 3: Bookings
     // Route::prefix('bookings')->group(base_path('routes/api/bookings.php'));
 

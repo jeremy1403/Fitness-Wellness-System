@@ -10,16 +10,17 @@ class StoreFitnessClassRequest extends FormRequest
     // public function authorize(): bool
     // {
     //     // 示例：只有管理员可以创建课程
-    //     // return $this->user()->is_admin; 
-    //     return true; 
+    //     // return $this->user()->is_admin;
+    //     return true;
     // }
 
     protected function prepareForValidation()
     {
         $this->merge([
-           'description' => strip_tags($this->description),
-       ]);
+            'description' => strip_tags($this->description),
+        ]);
     }
+
     // 验证规则
     public function rules(): array
     {
@@ -31,7 +32,7 @@ class StoreFitnessClassRequest extends FormRequest
             'user_id' => 'nullable|integer',
         ];
     }
-    
+
     public function messages(): array
     {
         return [
