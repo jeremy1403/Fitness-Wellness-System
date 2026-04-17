@@ -9,7 +9,7 @@ class MembershipPlanSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('membership_plans')->insert([
+        $plans = [
             [
                 'name'                 => 'Basic',
                 'price'                => 29.99,
@@ -50,6 +50,16 @@ class MembershipPlanSeeder extends Seeder
                 'created_at'           => now(),
                 'updated_at'           => now(),
             ],
-        ]);
+        ];
+
+        // upsert checks if name already exists
+        // if it does → updates it
+        // if it doesn't → inserts it
+        // this way running the seeder multiple times won't cause errors
+        DB::table('membership_plans')->upsert(
+            $plans,
+            ['name'],
+            ['price', 'duration_days', 'booking_daily_limit', 'booking_advance_days', 'status', 'updated_at']
+        );
     }
 }
