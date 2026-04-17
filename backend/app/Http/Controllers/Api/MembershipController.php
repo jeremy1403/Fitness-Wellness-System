@@ -156,13 +156,25 @@ class MembershipController extends Controller
     public function createPlan(Request $request): JsonResponse
     {
         $request->validate([
-            'name'                 => 'required|string|unique:membership_plans,name',
-            'price'                => 'required|numeric|min:0',
-            'duration_days'        => 'required|integer|min:1',
-            'booking_daily_limit'  => 'required|integer|min:1',
+            'name' => 'required|string|unique:membership_plans,name,' . $id . ',id',
+            'price' => 'required|numeric|min:0',
+            'duration_days' => 'required|integer|min:1',
+            'booking_daily_limit' => 'required|integer|min:1',
             'booking_advance_days' => 'required|integer|min:1',
-            'status'               => 'sometimes|string|in:active,inactive',
+            'status' => 'sometimes|string|in:active,inactive',
         ]);
+
+        $plan = $this->membershipService->updatePlan(
+            (int) $id,
+            new UpdatePlanData(
+                name: $request->name,
+                price: $request->price,
+                durationDays: $request->duration_days,
+                bookingDailyLimit: $request->booking_daily_limit,
+                bookingAdvanceDays: $request->booking_advance_days,
+                status: $request->status ?? 'active',
+            )
+        );
 
         $plan = $this->membershipService->createPlan(
             new CreatePlanData(
@@ -186,7 +198,7 @@ class MembershipController extends Controller
     public function updatePlan(Request $request, string $id): JsonResponse
     {
         $request->validate([
-            'name'                 => 'required|string',
+            'name'                 => 'required|string|unique:membership_plans,name,' . $id,
             'price'                => 'required|numeric|min:0',
             'duration_days'        => 'required|integer|min:1',
             'booking_daily_limit'  => 'required|integer|min:1',
