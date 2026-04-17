@@ -32,12 +32,17 @@ export default function MembershipPage() {
     }
   }
 
-  async function handleSubscribe(planId: number) {
+  async function handleSubscribe(planId: number, planPrice: string) {
     setSubscribing(true);
     setMessage("");
     try {
-      await membershipApi.subscribe(planId, "card_mock");
-      setMessage("Successfully subscribed!");
+      const membershipRes = await membershipApi.subscribe(planId, "card_mock");
+      await membershipApi.processPayment(
+        membershipRes.data.id,
+        parseFloat(planPrice),
+        "card_mock"
+      );
+      setMessage("Successfully subscribed and payment processed!");
       fetchData();
     } catch (err) {
       setMessage("Failed to subscribe. You may already have an active membership.");
@@ -144,7 +149,7 @@ export default function MembershipPage() {
               <Button
                 className="mt-auto"
                 disabled={subscribing || !!activeMembership}
-                onClick={() => handleSubscribe(plan.id)}
+                onClick={() => handleSubscribe(plan.id, plan.price)}
               >
                 {activeMembership ? "Already Subscribed" : "Subscribe"}
               </Button>

@@ -49,5 +49,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Update membership status
         Route::put('/{id}/status', [MembershipController::class, 'updateStatus']);
+
+        // Admin - get all payments
+        Route::get('/payments/all', [PaymentController::class, 'allPayments']);
     });
 });

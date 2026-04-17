@@ -40,7 +40,7 @@ export default function AdminPaymentsPage() {
     setLoading(true);
     setLoadError(null);
     try {
-      const res = await membershipApi.myPayments();
+      const res = await membershipApi.getAllPayments();
       setPayments(res.data);
     } catch {
       setLoadError("Unable to load payments.");

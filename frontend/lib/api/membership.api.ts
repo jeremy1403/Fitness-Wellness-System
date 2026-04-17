@@ -144,4 +144,12 @@ export const membershipApi = {
       }
     );
   },
+
+  // Admin - get all payments
+  getAllPayments() {
+    return http<{ message: string; data: Payment[] }>(
+      "/payments/all",
+      { baseUrl: "/api/memberships" }
+    );
+  },
 };

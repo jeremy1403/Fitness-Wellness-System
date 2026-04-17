@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Api;
 
 use App\DTOs\Membership\ProcessPaymentData;
@@ -6,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Models\Payment;
 
 class PaymentController extends Controller
 {
@@ -55,10 +57,10 @@ class PaymentController extends Controller
 
         $payment = $this->paymentService->processPayment(
             new ProcessPaymentData(
-                userId:       $request->user()->id,
+                userId: $request->user()->id,
                 membershipId: $request->membership_id,
-                amount:       $request->amount,
-                method:       $request->method,
+                amount: $request->amount,
+                method: $request->method,
             )
         );
 
@@ -75,6 +77,20 @@ class PaymentController extends Controller
         $payments = $this->paymentService->getMembershipPayments($id);
         return response()->json([
             'message' => 'Membership payments retrieved.',
+            'data'    => $payments,
+        ]);
+    }
+
+    // GET /api/v1/memberships/payments/all
+    // Admin only - returns all payments
+    public function allPayments(): JsonResponse
+    {
+        $payments = Payment::with('membership.plan', 'user')
+            ->orderByDesc('paid_at')
+            ->get();
+
+        return response()->json([
+            'message' => 'All payments retrieved.',
             'data'    => $payments,
         ]);
     }
