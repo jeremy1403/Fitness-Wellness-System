@@ -67,26 +67,51 @@ class FitnessClassController extends Controller
         ], 201);
     }
 
+    // public function update(StoreFitnessClassRequest $request, int $id): JsonResponse
+    // {
+    //     // 1. 查找是否存在
+    //     $fitnessClass = FitnessClass::find($id);
+    //     if (! $fitnessClass) {
+    //         return response()->json(['message' => 'Class not found'], 404);
+    //     }
+
+    //     // 只有 Admin 或者 该课的创建者 才能更新
+    //     if (auth()->user()->role !== 1 && $fitnessClass->created_by !== auth()->id()) {
+    //         return response()->json(['message' => 'Unauthorized'], 403);
+    //     }
+
+    //     // 2. 更新数据 (validated 确保数据安全)
+    //     $fitnessClass->update($request->validated());
+
+    //     return response()->json([
+    //         'message' => 'Updated successfully!',
+    //         'data' => $fitnessClass,
+    //     ], 200);
+    // }
     public function update(StoreFitnessClassRequest $request, int $id): JsonResponse
     {
-        // 1. 查找是否存在
         $fitnessClass = FitnessClass::find($id);
-        if (! $fitnessClass) {
+        if (!$fitnessClass) {
             return response()->json(['message' => 'Class not found'], 404);
         }
 
-        // 只有 Admin 或者 该课的创建者 才能更新
-        if (auth()->user()->role !== 1 && $fitnessClass->created_by !== auth()->id()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        // 1. 获取前端传来的所有数据
+        $data = $request->all(); 
+
+        // 2. 关键：把 user_id 换成数据库认识的 created_by
+        if (isset($data['user_id'])) {
+            $data['created_by'] = $data['user_id'];
+            // 删掉 user_id，防止 Laravel 报错或产生歧义
+            unset($data['user_id']); 
         }
 
-        // 2. 更新数据 (validated 确保数据安全)
-        $fitnessClass->update($request->validated());
+        // 3. 执行更新
+        $fitnessClass->update($data);
 
-        return response()->json([
-            'message' => 'Updated successfully!',
-            'data' => $fitnessClass,
-        ], 200);
+        // 4. 重新同步一下数据库的数据，确保你看到的是真结果
+        $fitnessClass->refresh();
+
+        return response()->json($fitnessClass, 200);
     }
 
     public function destroy(int $id): JsonResponse

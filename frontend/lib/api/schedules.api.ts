@@ -23,7 +23,7 @@ function readSchedulesData<T>(value: unknown): T[] {
   throw new Error("Invalid schedules response received from backend.");
 }
 
-// 1. 获取所有排课列表 (Read)
+// 1. Get all course schedules (Read)
 export const getSchedules = async <T = any>(): Promise<T[]> => {
   const url = backendUrl("/schedules");
   const response = await fetch(url, {
@@ -35,7 +35,7 @@ export const getSchedules = async <T = any>(): Promise<T[]> => {
   return readSchedulesData<T>(body);
 };
 
-// 2. 创建新排课 (Create)
+// 2. Create a new schedule.
 export const createSchedule = async (data: any) => {
   const url = backendUrl("/schedules");
   const response = await fetch(url, {
@@ -54,7 +54,7 @@ export const createSchedule = async (data: any) => {
   return await response.json();
 };
 
-// 3. 删除排课 (Delete)
+// 3. Delete class
 export const deleteSchedule = async (id: number) => {
   const url = backendUrl(`/schedules/${id}`);
   const response = await fetch(url, {
@@ -66,7 +66,7 @@ export const deleteSchedule = async (id: number) => {
   return true;
 };
 
-// 4. 获取教练列表 (用于填充下拉框) — goes through /api/backend proxy so the Sanctum token is attached.
+// 4. Retrieving the coach list (to populate the dropdown)
 export const getTrainers = async () => {
   const body = await http<{
     request_status?: string;
@@ -79,7 +79,7 @@ export const getTrainers = async () => {
   return body.data;
 };
 
-// 5. 更新排课 (Update)
+// 5. Update course schedule 
 export const updateSchedule = async (id: number | string, data: any) => {
   const url = backendUrl(`/schedules/${id}`);
   const response = await fetch(url, {

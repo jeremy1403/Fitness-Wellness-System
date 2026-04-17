@@ -22,7 +22,7 @@ class ClassSetupFactory
     // }
     public static function make(string $mode): ClassSetupStrategyInterface
     {
-        // 增加这个判断，如果模式不存在或对应的类没写好，强制回滚到 Simple
+        // If the pattern does not exist or the corresponding class is not properly defined, force a rollback to Simple.
         if ($mode === 'automated' && class_exists(\App\Services\Strategies\AutomatedSetupStrategy::class)) {
             return new \App\Services\Strategies\AutomatedSetupStrategy;
         }

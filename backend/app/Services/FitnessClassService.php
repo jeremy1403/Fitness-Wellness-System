@@ -18,19 +18,17 @@ class FitnessClassService
     {
         $user = Auth::user();
 
-        // 如果没有登录（没用 auth:sanctum），Auth::user() 会是 null
-        // 为了防止报错，我们加个判断
         if (!$user) {
-            // 如果没登录，返回全部或者根据你的需求处理
+            // If you are not logged in, return all or process according 
             return FitnessClass::all(); 
         }
 
-        // Admin (role 为 1) 看全部
+        // Admin (role is 1) View all
         if ($user->role === 1) { 
             return FitnessClass::all();
         }
 
-        // Trainer 只看自己
+        // Trainer only looks at himself
         return FitnessClass::where('created_by', $user->id)->get();
     }
 
