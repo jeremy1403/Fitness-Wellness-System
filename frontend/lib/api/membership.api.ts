@@ -152,4 +152,16 @@ export const membershipApi = {
       { baseUrl: "/api/memberships" }
     );
   },
+
+  // Admin - update plan status
+  updatePlanStatus(planId: number, status: string) {
+    return http<{ message: string; data: MembershipPlan }>(
+      `/plans/${planId}/status`,
+      {
+        method: "PUT",
+        body: { status },
+        baseUrl: "/api/memberships",
+      }
+    );
+  },
 };

@@ -68,7 +68,7 @@ export default function AdminMembershipsPage() {
     setActionLoading(plan.id);
     setActionError(null);
     try {
-      await membershipApi.updateStatus(plan.id, newStatus);
+      await membershipApi.updatePlanStatus(plan.id, newStatus);
       setPlans((prev) =>
         prev.map((p) => (p.id === plan.id ? { ...p, status: newStatus } : p))
       );

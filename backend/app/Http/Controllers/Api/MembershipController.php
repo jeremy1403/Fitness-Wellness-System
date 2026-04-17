@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Api;
 
 use App\DTOs\Membership\SubscribeToPlanData;
@@ -73,8 +74,8 @@ class MembershipController extends Controller
 
         $membership = $this->membershipService->subscribe(
             new SubscribeToPlanData(
-                userId:        $request->user()->id,
-                planId:        $request->plan_id,
+                userId: $request->user()->id,
+                planId: $request->plan_id,
                 paymentMethod: $request->payment_method,
             )
         );
@@ -129,6 +130,24 @@ class MembershipController extends Controller
                 'is_active'  => $membership !== null,
                 'membership' => $membership,
             ],
+        ]);
+    }
+
+    // PUT /api/v1/memberships/plans/{id}/status
+    // Admin only - update plan status
+    public function updatePlanStatus(Request $request, string $id): JsonResponse
+    {
+        $request->validate([
+            'status' => 'required|string|in:active,inactive',
+        ]);
+
+        $plan = $this->membershipService->getPlanById((int) $id);
+
+        $plan->update(['status' => $request->status]);
+
+        return response()->json([
+            'message' => 'Plan status updated.',
+            'data'    => $plan->fresh(),
         ]);
     }
 }

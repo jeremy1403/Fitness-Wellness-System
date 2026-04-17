@@ -52,5 +52,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Admin - get all payments
         Route::get('/payments/all', [PaymentController::class, 'allPayments']);
+
+        // Update plan status
+        Route::put('/plans/{id}/status', [MembershipController::class, 'updatePlanStatus']);
     });
 });
