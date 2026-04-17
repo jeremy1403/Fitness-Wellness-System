@@ -6,8 +6,10 @@ use App\DTOs\Membership\SubscribeToPlanData;
 use App\DTOs\Membership\UpdateSubscriptionData;
 use App\Http\Controllers\Controller;
 use App\Services\MembershipService;
+use App\DTOs\Membership\CreatePlanData;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+
 
 class MembershipController extends Controller
 {
