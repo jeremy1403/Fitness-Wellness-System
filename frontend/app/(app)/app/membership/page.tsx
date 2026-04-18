@@ -10,7 +10,6 @@ export default function MembershipPage() {
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [activeMembership, setActiveMembership] = useState<Membership | null>(null);
   const [loading, setLoading] = useState(true);
-  const [subscribing, setSubscribing] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -32,23 +31,8 @@ export default function MembershipPage() {
     }
   }
 
-  async function handleSubscribe(planId: number, planPrice: string) {
-    setSubscribing(true);
-    setMessage("");
-    try {
-      const membershipRes = await membershipApi.subscribe(planId, "card_mock");
-      await membershipApi.processPayment(
-        membershipRes.data.id,
-        parseFloat(planPrice),
-        "card_mock"
-      );
-      setMessage("Successfully subscribed and payment processed!");
-      fetchData();
-    } catch (err) {
-      setMessage("Failed to subscribe. You may already have an active membership.");
-    } finally {
-      setSubscribing(false);
-    }
+  function handleSubscribe(planId: number) {
+    window.location.href = `/app/payments?plan_id=${planId}`;
   }
 
   async function handleCancel() {
@@ -148,8 +132,8 @@ export default function MembershipPage() {
               </ul>
               <Button
                 className="mt-auto"
-                disabled={subscribing || !!activeMembership}
-                onClick={() => handleSubscribe(plan.id, plan.price)}
+                disabled={!!activeMembership}
+                onClick={() => handleSubscribe(plan.id)}
               >
                 {activeMembership ? "Already Subscribed" : "Subscribe"}
               </Button>
