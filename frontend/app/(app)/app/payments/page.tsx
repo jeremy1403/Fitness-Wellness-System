@@ -19,8 +19,8 @@ export default function PaymentsPage() {
   const [paying, setPaying] = useState(false);
   const [message, setMessage] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card_mock");
+  const [cashReceipt, setCashReceipt] = useState<string>("");
 
-  // Mock payment form fields
   const [cardName, setCardName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
@@ -109,6 +109,7 @@ export default function PaymentsPage() {
 
     setPaying(true);
     setMessage("");
+    setCashReceipt("");
 
     try {
       const subscribeRes = await membershipApi.subscribe(
@@ -117,18 +118,29 @@ export default function PaymentsPage() {
       );
       const membership = subscribeRes.data;
 
-      await membershipApi.processPayment(
+      const paymentRes = await membershipApi.processPayment(
         membership.id,
         Number(selectedPlan.price),
         paymentMethod
       );
 
+      const payment = paymentRes.data;
+
+      if (payment.method === "cash" && payment.status === "pending") {
+        setCashReceipt(payment.reference_no);
+        setMessage(
+          `Cash payment recorded successfully. Your receipt code is ${payment.reference_no}. Please proceed to the counter and wait for admin confirmation.`
+        );
+        await fetchData();
+        return;
+      }
+
       router.push("/app/membership?success=payment");
     } catch (err: any) {
       setMessage(
         err?.data?.message ||
-        err?.message ||
-        "Payment failed. Please try again."
+          err?.message ||
+          "Payment failed. Please try again."
       );
     } finally {
       setPaying(false);
@@ -155,6 +167,19 @@ export default function PaymentsPage() {
       {message && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {message}
+        </div>
+      )}
+
+      {cashReceipt && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
+          <p className="font-semibold">Cash Payment Pending Confirmation</p>
+          <p className="mt-1">
+            Receipt Code: <span className="font-mono font-semibold">{cashReceipt}</span>
+          </p>
+          <p className="mt-1">
+            Please show this code to the admin/front desk. Your membership will be activated
+            after payment is confirmed.
+          </p>
         </div>
       )}
 
@@ -226,6 +251,7 @@ export default function PaymentsPage() {
                   onChange={(e) => {
                     setPaymentMethod(e.target.value as PaymentMethod);
                     setMessage("");
+                    setCashReceipt("");
                   }}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
                 >
@@ -336,8 +362,8 @@ export default function PaymentsPage() {
 
               {paymentMethod === "cash" && (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                  Cash payment selected. Please proceed to the counter/front desk to complete payment.
-                  This transaction will still be recorded in the system as a mock payment for demo purposes.
+                  Cash payment selected. A receipt code will be generated after submission.
+                  Please present that code to the admin/front desk for manual payment confirmation.
                 </div>
               )}
 
@@ -385,7 +411,7 @@ export default function PaymentsPage() {
                     Ref: {payment.reference_no}
                   </p>
                   <p className="text-sm text-slate-500">
-                    Date: {new Date(payment.paid_at).toLocaleDateString()}
+                    Date: {payment.paid_at ? new Date(payment.paid_at).toLocaleDateString() : "-"}
                   </p>
                   <p className="text-sm text-slate-500">
                     Method: {payment.method}
@@ -400,6 +426,8 @@ export default function PaymentsPage() {
                     className={
                       payment.status === "paid"
                         ? "bg-green-100 text-green-800"
+                        : payment.status === "pending"
+                        ? "bg-amber-100 text-amber-800"
                         : "bg-red-100 text-red-800"
                     }
                   >
