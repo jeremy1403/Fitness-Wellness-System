@@ -1,16 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { membershipApi, Membership, MembershipPlan } from "@/lib/api/membership.api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 export default function MembershipPage() {
-  const searchParams = useSearchParams();
-  const success = searchParams.get("success");
-
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [activeMembership, setActiveMembership] = useState<Membership | null>(null);
   const [loading, setLoading] = useState(true);
@@ -18,13 +14,14 @@ export default function MembershipPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
 
-  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get("success");
+
     if (success === "payment") {
       setMessage("Payment successful. Your membership has been activated.");
     }
-  }, [success]);
+  }, []);
 
   async function fetchData() {
     try {
@@ -34,7 +31,7 @@ export default function MembershipPage() {
       ]);
       setPlans(plansRes.data);
       setActiveMembership(membershipRes.data);
-    } catch (err) {
+    } catch {
       setMessage("Failed to load membership data.");
     } finally {
       setLoading(false);
@@ -53,7 +50,7 @@ export default function MembershipPage() {
       await membershipApi.cancel(activeMembership.id);
       setMessage("Membership cancelled.");
       fetchData();
-    } catch (err) {
+    } catch {
       setMessage("Failed to cancel membership.");
     }
   }
@@ -68,7 +65,6 @@ export default function MembershipPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header */}
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h1 className="text-2xl font-semibold text-slate-900">Membership</h1>
         <p className="mt-1 text-sm text-slate-500">
@@ -76,14 +72,12 @@ export default function MembershipPage() {
         </p>
       </div>
 
-      {/* Message */}
       {message && (
         <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
           {message}
         </div>
       )}
 
-      {/* Active Membership */}
       {activeMembership ? (
         <div className="rounded-3xl border border-green-200 bg-green-50 p-6">
           <div className="flex items-center justify-between">
@@ -95,7 +89,7 @@ export default function MembershipPage() {
                 Valid until: {new Date(activeMembership.end_date).toLocaleDateString()}
               </p>
               <p className="text-sm text-green-700">
-                Status:{" "}
+                Status{" "}
                 <Badge className="bg-green-100 text-green-800">
                   {activeMembership.status}
                 </Badge>
@@ -118,7 +112,6 @@ export default function MembershipPage() {
         </div>
       )}
 
-      {/* Available Plans */}
       <div>
         <h2 className="mb-4 text-lg font-semibold text-slate-900">
           Available Plans
