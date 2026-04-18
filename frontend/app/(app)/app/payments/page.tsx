@@ -20,6 +20,16 @@ export default function PaymentsPage() {
   const [message, setMessage] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card_mock");
 
+  // Mock payment form fields
+  const [cardName, setCardName] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
+  const [cvv, setCvv] = useState("");
+
+  const [bankName, setBankName] = useState("");
+  const [accountName, setAccountName] = useState("");
+  const [transferReference, setTransferReference] = useState("");
+
   const selectedPlan = useMemo(() => {
     if (!planIdParam) return null;
     const planId = Number(planIdParam);
@@ -49,9 +59,51 @@ export default function PaymentsPage() {
     }
   }
 
+  function validatePaymentDetails(): boolean {
+    if (paymentMethod === "card_mock") {
+      if (!cardName.trim()) {
+        setMessage("Please enter the cardholder name.");
+        return false;
+      }
+      if (!cardNumber.trim() || cardNumber.replace(/\s/g, "").length < 12) {
+        setMessage("Please enter a valid card number.");
+        return false;
+      }
+      if (!expiryDate.trim()) {
+        setMessage("Please enter the card expiry date.");
+        return false;
+      }
+      if (!cvv.trim() || cvv.length < 3) {
+        setMessage("Please enter a valid CVV.");
+        return false;
+      }
+    }
+
+    if (paymentMethod === "transfer") {
+      if (!bankName.trim()) {
+        setMessage("Please enter the bank name.");
+        return false;
+      }
+      if (!accountName.trim()) {
+        setMessage("Please enter the account holder name.");
+        return false;
+      }
+      if (!transferReference.trim()) {
+        setMessage("Please enter the transfer reference number.");
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   async function handlePayNow() {
     if (!selectedPlan) {
       setMessage("Selected plan not found.");
+      return;
+    }
+
+    if (!validatePaymentDetails()) {
       return;
     }
 
@@ -171,7 +223,10 @@ export default function PaymentsPage() {
                 </label>
                 <select
                   value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+                  onChange={(e) => {
+                    setPaymentMethod(e.target.value as PaymentMethod);
+                    setMessage("");
+                  }}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
                 >
                   <option value="card_mock">Card</option>
@@ -179,6 +234,112 @@ export default function PaymentsPage() {
                   <option value="cash">Cash</option>
                 </select>
               </div>
+
+              {paymentMethod === "card_mock" && (
+                <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-2">
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Cardholder Name
+                    </label>
+                    <input
+                      type="text"
+                      value={cardName}
+                      onChange={(e) => setCardName(e.target.value)}
+                      placeholder="Enter cardholder name"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Card Number
+                    </label>
+                    <input
+                      type="text"
+                      value={cardNumber}
+                      onChange={(e) => setCardNumber(e.target.value)}
+                      placeholder="1234 5678 9012 3456"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Expiry Date
+                    </label>
+                    <input
+                      type="text"
+                      value={expiryDate}
+                      onChange={(e) => setExpiryDate(e.target.value)}
+                      placeholder="MM/YY"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      CVV
+                    </label>
+                    <input
+                      type="password"
+                      value={cvv}
+                      onChange={(e) => setCvv(e.target.value)}
+                      placeholder="123"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {paymentMethod === "transfer" && (
+                <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Bank Name
+                    </label>
+                    <input
+                      type="text"
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      placeholder="Enter bank name"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Account Holder Name
+                    </label>
+                    <input
+                      type="text"
+                      value={accountName}
+                      onChange={(e) => setAccountName(e.target.value)}
+                      placeholder="Enter account holder name"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Transfer Reference Number
+                    </label>
+                    <input
+                      type="text"
+                      value={transferReference}
+                      onChange={(e) => setTransferReference(e.target.value)}
+                      placeholder="Enter transfer reference"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {paymentMethod === "cash" && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                  Cash payment selected. Please proceed to the counter/front desk to complete payment.
+                  This transaction will still be recorded in the system as a mock payment for demo purposes.
+                </div>
+              )}
 
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button onClick={handlePayNow} disabled={paying}>
