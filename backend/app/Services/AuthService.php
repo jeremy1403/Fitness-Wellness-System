@@ -11,6 +11,7 @@ use App\Repositories\Contracts\TrainerRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Support\AppLogger;
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -57,7 +58,28 @@ class AuthService
     {
         $user = $this->userRepository->findByEmail($data->email);
 
-        if (! $user || ! Hash::check($data->password, $user->password)) {
+        $credentialsValid = $user && Hash::check($data->password, $user->password);
+
+        if (! $credentialsValid) {
+            if ($user && $user->isActive()) {
+                $cacheKey = "login_attempts:{$user->id}";
+                $attempts = Cache::increment($cacheKey);
+
+                if ($attempts >= 5) {
+                    $this->userRepository->update($user, ['status' => 'disabled']);
+                    Cache::forget($cacheKey);
+
+                    AppLogger::warning('auth', 'Account disabled due to too many failed login attempts', [
+                        'user_id' => $user->id,
+                        'email' => $data->email,
+                    ]);
+
+                    throw ValidationException::withMessages([
+                        'email' => ['Your account has been disabled due to too many failed login attempts. Please contact support.'],
+                    ]);
+                }
+            }
+
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
@@ -68,6 +90,8 @@ class AuthService
                 'email' => ['Your account has been disabled. Please contact support.'],
             ]);
         }
+
+        Cache::forget("login_attempts:{$user->id}");
 
         $token = $user->createToken('auth-token')->plainTextToken;
 

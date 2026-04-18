@@ -13,6 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EditorialHero } from "@/components/decor/EditorialHero";
 import { FadeIn } from "@/components/motion/FadeIn";
+import { DEFAULT_ADMIN_ID } from "@/lib/config";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Table,
   TableBody,
@@ -204,6 +210,18 @@ export default function AdminRolesPage() {
                 <TableBody>
                   {filtered.map((user, idx) => {
                     const isSelf = currentUser?.id === user.id;
+                    const isDefaultAdmin = user.id === DEFAULT_ADMIN_ID;
+                    const currentUserIsDefaultAdmin = currentUser?.id === DEFAULT_ADMIN_ID;
+                    const targetIsAdmin = user.roles.includes("admin");
+                    const isLocked =
+                      isDefaultAdmin ||
+                      (!currentUserIsDefaultAdmin && targetIsAdmin) ||
+                      isSelf;
+                    const lockReason = isDefaultAdmin
+                      ? "The default admin's role cannot be changed."
+                      : isSelf
+                      ? "You cannot change your own role."
+                      : "Only the default admin can change another admin's role.";
                     const currentRole = user.roles[0] ?? "member";
                     const isPulsing = pulseId === user.id;
 
@@ -237,10 +255,18 @@ export default function AdminRolesPage() {
                         </TableCell>
                         <TableCell className="text-slate-500">{user.email}</TableCell>
                         <TableCell>
-                          {isSelf ? (
-                            <Badge variant="outline" className="text-xs capitalize">
-                              {currentRole}
-                            </Badge>
+                          {isLocked ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant="outline"
+                                  className="cursor-not-allowed text-xs capitalize opacity-60"
+                                >
+                                  {currentRole}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>{lockReason}</TooltipContent>
+                            </Tooltip>
                           ) : (
                             <Select
                               value={currentRole}

@@ -85,6 +85,8 @@ class UserController extends Controller
             return response()->json(['message' => 'User not found.'], 404);
         }
 
+        $this->authorize('assignRole', $user);
+
         $this->userService->assignRole($user, $request->input('role'));
 
         return response()->json([
@@ -104,6 +106,8 @@ class UserController extends Controller
         if (! $user) {
             return response()->json(['message' => 'User not found.'], 404);
         }
+
+        $this->authorize('removeRole', $user);
 
         $this->userService->removeRole($user, $request->input('role'));
 

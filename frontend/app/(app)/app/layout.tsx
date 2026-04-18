@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import SidebarShell from "@/components/layout/SidebarShell";
+import { useRoleGuard } from "@/hooks/use-role-guard";
 import { userNav } from "@/lib/navigation";
 
 export default function AppLayout({
@@ -9,6 +10,8 @@ export default function AppLayout({
 }: {
   children: ReactNode;
 }) {
+  useRoleGuard("user");
+
   return (
     <SidebarShell
       title="User System"
