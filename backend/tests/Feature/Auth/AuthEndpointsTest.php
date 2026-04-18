@@ -6,6 +6,8 @@ use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
 
 class AuthEndpointsTest extends TestCase
@@ -210,6 +212,27 @@ class AuthEndpointsTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonPath('errors.email.0', 'This email address is already taken.');
+    }
+
+    public function test_reset_password_updates_password_with_confirmation(): void
+    {
+        $user = $this->createUserWithRole('member', [
+            'email' => 'reset@example.com',
+            'password' => 'old-password',
+        ]);
+        $token = Password::broker()->createToken($user);
+
+        $response = $this->postJson('/api/v1/auth/reset-password', [
+            'email' => 'reset@example.com',
+            'token' => $token,
+            'password' => 'new-password123',
+            'password_confirmation' => 'new-password123',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('message', 'Password has been reset successfully.');
+
+        $this->assertTrue(Hash::check('new-password123', $user->refresh()->password));
     }
 
     public function test_logout_revokes_current_token(): void

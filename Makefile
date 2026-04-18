@@ -4,6 +4,7 @@
 
 .PHONY: help build up down restart logs shell \
         install migrate seed fresh test lint \
+        queue queue-restart queue-failed queue-retry \
         frontend-shell frontend-build frontend-lint \
         mysql redis mailpit clean
 
@@ -69,6 +70,22 @@ routes: ## List all registered routes
 
 clear: ## Clear all Laravel caches
 	docker compose exec app php artisan optimize:clear
+
+# ==============================================================================
+# Queue Worker (Redis-backed)
+# ==============================================================================
+
+queue: ## Tail the queue worker logs
+	docker compose logs -f queue-worker
+
+queue-restart: ## Signal queue workers to restart (after code changes)
+	docker compose exec app php artisan queue:restart
+
+queue-failed: ## List failed queue jobs
+	docker compose exec app php artisan queue:failed
+
+queue-retry: ## Retry all failed queue jobs
+	docker compose exec app php artisan queue:retry all
 
 # ==============================================================================
 # Frontend (Next.js)

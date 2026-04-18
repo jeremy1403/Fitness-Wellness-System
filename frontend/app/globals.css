@@ -9,6 +9,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-instrument-serif);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -126,5 +127,66 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@keyframes mesh-drift {
+  0%,
+  100% {
+    background-position:
+      0% 0%,
+      100% 100%,
+      50% 50%;
+  }
+  50% {
+    background-position:
+      100% 20%,
+      0% 80%,
+      70% 30%;
+  }
+}
+
+.animate-mesh-drift {
+  animation: mesh-drift 18s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-mesh-drift {
+    animation: none;
+  }
+}
+
+@keyframes blob-drift-a {
+  0%,
+  100% {
+    transform: translate3d(-4%, -3%, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(6%, 5%, 0) scale(1.1);
+  }
+}
+
+@keyframes blob-drift-b {
+  0%,
+  100% {
+    transform: translate3d(4%, 3%, 0) scale(1.05);
+  }
+  50% {
+    transform: translate3d(-5%, -4%, 0) scale(0.95);
+  }
+}
+
+.animate-blob-a {
+  animation: blob-drift-a 22s ease-in-out infinite;
+}
+
+.animate-blob-b {
+  animation: blob-drift-b 28s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-blob-a,
+  .animate-blob-b {
+    animation: none;
   }
 }
