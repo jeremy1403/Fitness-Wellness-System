@@ -153,6 +153,17 @@ export const membershipApi = {
     );
   },
 
+  // Admin - mark a pending cash payment as paid
+  markPaymentAsPaid(paymentId: number) {
+    return http<{ message: string; data: Payment }>(
+      `/payments/${paymentId}/mark-paid`,
+      {
+        method: "PUT",
+        baseUrl: "/api/memberships",
+      }
+    );
+  },
+
   // Admin - update plan status
   updatePlanStatus(planId: number, status: string) {
     return http<{ message: string; data: MembershipPlan }>(

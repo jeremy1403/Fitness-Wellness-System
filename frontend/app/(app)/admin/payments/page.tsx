@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table";
 
 function formatDate(dateStr: string) {
+  if (!dateStr) return "-";
   return new Date(dateStr).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -30,6 +31,8 @@ export default function AdminPaymentsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const totalAmount = payments.reduce(
     (sum, p) => sum + parseFloat(p.amount),
@@ -53,15 +56,47 @@ export default function AdminPaymentsPage() {
     fetchData();
   }, [fetchData]);
 
-  const filtered = payments.filter(
-    (p) =>
-      p.reference_no.toLowerCase().includes(search.toLowerCase()) ||
-      p.method.toLowerCase().includes(search.toLowerCase())
-  );
+  async function handleMarkAsPaid(paymentId: number) {
+    setActionLoading(paymentId);
+    setActionError(null);
+
+    try {
+      const res = await membershipApi.markPaymentAsPaid(paymentId);
+      const updatedPayment = res.data;
+
+      setPayments((prev) =>
+        prev.map((payment) =>
+          payment.id === paymentId ? updatedPayment : payment
+        )
+      );
+    } catch (err: any) {
+      setActionError(
+        err?.data?.message ||
+          err?.message ||
+          "Unable to mark payment as paid."
+      );
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  const filtered = payments.filter((p) => {
+    const ref = p.reference_no?.toLowerCase() ?? "";
+    const method = p.method?.toLowerCase() ?? "";
+    const status = p.status?.toLowerCase() ?? "";
+    const planName = p.membership?.plan?.name?.toLowerCase() ?? "";
+    const term = search.toLowerCase();
+
+    return (
+      ref.includes(term) ||
+      method.includes(term) ||
+      status.includes(term) ||
+      planName.includes(term)
+    );
+  });
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-semibold text-slate-900">Payments</h1>
         <p className="mt-1 text-sm text-slate-500">
@@ -69,10 +104,9 @@ export default function AdminPaymentsPage() {
         </p>
       </div>
 
-      {/* Error */}
-      {loadError && (
+      {(loadError || actionError) && (
         <div className="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between">
-          <p>{loadError}</p>
+          <p>{actionError ?? loadError}</p>
           <Button
             type="button"
             variant="outline"
@@ -86,7 +120,6 @@ export default function AdminPaymentsPage() {
         </div>
       )}
 
-      {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="flex items-center gap-4 p-5">
@@ -105,6 +138,7 @@ export default function AdminPaymentsPage() {
             </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardContent className="flex items-center gap-4 p-5">
             <div className="rounded-lg bg-slate-100 p-2.5 text-emerald-600">
@@ -122,6 +156,7 @@ export default function AdminPaymentsPage() {
             </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardContent className="flex items-center gap-4 p-5">
             <div className="rounded-lg bg-slate-100 p-2.5 text-blue-600">
@@ -141,13 +176,12 @@ export default function AdminPaymentsPage() {
         </Card>
       </div>
 
-      {/* Search + Table */}
       <Card>
         <CardContent className="p-0">
           <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
             <Search className="h-4 w-4 text-slate-400" />
             <Input
-              placeholder="Search by reference or method..."
+              placeholder="Search by reference, plan, method, or status..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-9 border-0 p-0 shadow-none focus-visible:ring-0"
@@ -169,40 +203,67 @@ export default function AdminPaymentsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Reference</TableHead>
+                  <TableHead>Plan</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Method</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Date</TableHead>
+                  <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((payment) => (
-                  <TableRow key={payment.id}>
-                    <TableCell className="font-medium text-slate-900">
-                      {payment.reference_no}
-                    </TableCell>
-                    <TableCell className="text-slate-500">
-                      RM {payment.amount}
-                    </TableCell>
-                    <TableCell className="text-slate-500">
-                      {payment.method}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        className={
-                          payment.status === "paid"
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-red-50 text-red-700"
-                        }
-                      >
-                        {payment.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-slate-500">
-                      {formatDate(payment.paid_at)}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {filtered.map((payment) => {
+                  const isPendingCash =
+                    payment.method === "cash" && payment.status === "pending";
+
+                  return (
+                    <TableRow key={payment.id}>
+                      <TableCell className="font-medium text-slate-900">
+                        {payment.reference_no}
+                      </TableCell>
+                      <TableCell className="text-slate-500">
+                        {payment.membership?.plan?.name ?? "-"}
+                      </TableCell>
+                      <TableCell className="text-slate-500">
+                        RM {payment.amount}
+                      </TableCell>
+                      <TableCell className="text-slate-500">
+                        {payment.method}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          className={
+                            payment.status === "paid"
+                              ? "bg-emerald-50 text-emerald-700"
+                              : payment.status === "pending"
+                              ? "bg-amber-50 text-amber-700"
+                              : "bg-red-50 text-red-700"
+                          }
+                        >
+                          {payment.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-slate-500">
+                        {formatDate(payment.paid_at)}
+                      </TableCell>
+                      <TableCell>
+                        {isPendingCash ? (
+                          <Button
+                            size="sm"
+                            onClick={() => handleMarkAsPaid(payment.id)}
+                            disabled={actionLoading === payment.id}
+                          >
+                            {actionLoading === payment.id
+                              ? "Updating..."
+                              : "Mark as Paid"}
+                          </Button>
+                        ) : (
+                          <span className="text-sm text-slate-400">-</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}

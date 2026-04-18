@@ -15,26 +15,22 @@ class PaymentController extends Controller
         private readonly PaymentService $paymentService,
     ) {}
 
-    // GET /api/v1/payments/my
-    // Returns current user's payment history
     public function myPayments(Request $request): JsonResponse
     {
         $payments = $this->paymentService->getUserPayments(
             $request->user()->id
         );
+
         return response()->json([
             'message' => 'Payment history retrieved.',
             'data'    => $payments,
         ]);
     }
 
-    // GET /api/v1/payments/{id}
-    // Returns a single payment (receipt)
     public function show(Request $request, string $id): JsonResponse
     {
-        $payment = $this->paymentService->getPaymentById($id);
+        $payment = $this->paymentService->getPaymentById((int) $id);
 
-        // Make sure user can only see their own payments
         if ($payment->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
@@ -45,8 +41,6 @@ class PaymentController extends Controller
         ]);
     }
 
-    // POST /api/v1/payments/process
-    // Process a payment for a membership
     public function process(Request $request): JsonResponse
     {
         $request->validate([
@@ -65,24 +59,23 @@ class PaymentController extends Controller
         );
 
         return response()->json([
-            'message' => 'Payment processed successfully.',
+            'message' => $payment->status === 'pending'
+                ? 'Cash payment recorded. Awaiting admin confirmation.'
+                : 'Payment processed successfully.',
             'data'    => $payment,
         ], 201);
     }
 
-    // GET /api/v1/payments/membership/{id}
-    // Returns all payments for a specific membership
     public function byMembership(int $id): JsonResponse
     {
         $payments = $this->paymentService->getMembershipPayments($id);
+
         return response()->json([
             'message' => 'Membership payments retrieved.',
             'data'    => $payments,
         ]);
     }
 
-    // GET /api/v1/memberships/payments/all
-    // Admin only - returns all payments
     public function allPayments(): JsonResponse
     {
         $payments = Payment::with('membership.plan', 'user')
@@ -92,6 +85,16 @@ class PaymentController extends Controller
         return response()->json([
             'message' => 'All payments retrieved.',
             'data'    => $payments,
+        ]);
+    }
+
+    public function markAsPaid(string $id): JsonResponse
+    {
+        $payment = $this->paymentService->markAsPaid((int) $id);
+
+        return response()->json([
+            'message' => 'Payment marked as paid successfully.',
+            'data'    => $payment,
         ]);
     }
 }

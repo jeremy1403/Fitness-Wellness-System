@@ -72,7 +72,7 @@ class MembershipService
         }
 
         $startDate = Carbon::today();
-        $endDate = Carbon::today()->addDays($plan->duration_days);
+        $endDate = Carbon::today();
 
         return DB::transaction(function () use ($data, $plan, $startDate, $endDate) {
             $membership = $this->membershipRepository->create([
@@ -80,7 +80,7 @@ class MembershipService
                 'membership_plan_id' => $plan->id,
                 'start_date'         => $startDate,
                 'end_date'           => $endDate,
-                'status'             => 'active',
+                'status'             => 'pending',
             ]);
 
             AppLogger::info('membership', 'User subscribed to plan', [
@@ -103,8 +103,8 @@ class MembershipService
         if ($membership->user_id !== $userId) {
             throw new \Exception('Unauthorized.');
         }
-        if ($membership->status !== 'active') {
-            throw new \Exception('Only active memberships can be cancelled.');
+        if (!in_array($membership->status, ['active', 'pending'])) {
+            throw new \Exception('Only active or pending memberships can be cancelled.');
         }
 
         return $this->membershipRepository->update($membership, [

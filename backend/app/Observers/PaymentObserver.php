@@ -7,24 +7,34 @@ use App\Support\AppLogger;
 
 class PaymentObserver
 {
-    // This automatically fires when a Payment is saved to the database
     public function created(Payment $payment): void
     {
-        // Load the membership related to this payment
-        $membership = $payment->membership;
+        $this->activateMembershipIfPaid($payment);
+    }
 
+    public function updated(Payment $payment): void
+    {
+        if ($payment->wasChanged('status')) {
+            $this->activateMembershipIfPaid($payment);
+        }
+    }
+
+    private function activateMembershipIfPaid(Payment $payment): void
+    {
+        if ($payment->status !== 'paid') {
+            return;
+        }
+
+        $membership = $payment->membership;
         if (!$membership) {
             return;
         }
 
-        // Load the plan to get duration_days
         $plan = $membership->plan;
-
         if (!$plan) {
             return;
         }
 
-        // Extend the membership end date based on the plan duration
         $newEndDate = now()->addDays($plan->duration_days);
 
         $membership->update([
@@ -36,6 +46,7 @@ class PaymentObserver
             'payment_id'    => $payment->id,
             'membership_id' => $membership->id,
             'new_end_date'  => $newEndDate,
+            'payment_status'=> $payment->status,
         ]);
     }
 }

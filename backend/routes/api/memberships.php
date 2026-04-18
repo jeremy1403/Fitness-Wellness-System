@@ -53,6 +53,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Admin - get all payments
         Route::get('/payments/all', [PaymentController::class, 'allPayments']);
 
+        // Admin - mark a payment as paid (for cash payments)
+        Route::put('/payments/{id}/mark-paid', [PaymentController::class, 'markAsPaid']);
+
         // Update plan status
         Route::put('/plans/{id}/status', [MembershipController::class, 'updatePlanStatus']);
 

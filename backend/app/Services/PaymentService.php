@@ -18,19 +18,16 @@ class PaymentService
         private readonly MembershipRepositoryInterface $membershipRepository,
     ) {}
 
-    // Get all payments for a user (payment history)
     public function getUserPayments(int $userId): Collection
     {
         return $this->paymentRepository->findByUser($userId);
     }
 
-    // Get payments for a specific membership
     public function getMembershipPayments(int $membershipId): Collection
     {
         return $this->paymentRepository->findByMembership($membershipId);
     }
 
-    // Process a payment for a membership
     public function processPayment(ProcessPaymentData $data): Payment
     {
         $membership = $this->membershipRepository->findById($data->membershipId);
@@ -38,32 +35,72 @@ class PaymentService
         if (!$membership) {
             throw new \Exception('Membership not found.');
         }
+
         if ($membership->user_id !== $data->userId) {
             throw new \Exception('Unauthorized.');
         }
 
         return DB::transaction(function () use ($data) {
+            $status = $data->method === 'cash' ? 'pending' : 'paid';
+
             $payment = $this->paymentRepository->create([
                 'membership_id' => $data->membershipId,
                 'user_id'       => $data->userId,
                 'amount'        => $data->amount,
                 'method'        => $data->method,
-                'status'        => 'paid',
+                'status'        => $status,
                 'paid_at'       => now(),
                 'reference_no'  => $this->generateReferenceNo(),
             ]);
 
-            AppLogger::info('payment', 'Payment processed', [
+            AppLogger::info('payment', 'Payment created', [
                 'user_id'      => $data->userId,
                 'payment_id'   => $payment->id,
                 'reference_no' => $payment->reference_no,
+                'method'       => $payment->method,
+                'status'       => $payment->status,
             ]);
 
             return $payment;
         });
     }
 
-    // Generate a unique reference number for the payment
+    public function getPaymentById(int $paymentId): Payment
+    {
+        $payment = $this->paymentRepository->findById($paymentId);
+
+        if (!$payment) {
+            throw new \Exception('Payment not found.');
+        }
+
+        return $payment;
+    }
+
+    public function markAsPaid(int $paymentId): Payment
+    {
+        $payment = $this->paymentRepository->findById($paymentId);
+
+        if (!$payment) {
+            throw new \Exception('Payment not found.');
+        }
+
+        if ($payment->status === 'paid') {
+            throw new \Exception('Payment is already marked as paid.');
+        }
+
+        $updated = $this->paymentRepository->update($payment, [
+            'status'  => 'paid',
+            'paid_at' => now(),
+        ]);
+
+        AppLogger::info('payment', 'Payment marked as paid by admin', [
+            'payment_id'   => $updated->id,
+            'reference_no' => $updated->reference_no,
+        ]);
+
+        return $updated;
+    }
+
     private function generateReferenceNo(): string
     {
         do {
@@ -71,15 +108,5 @@ class PaymentService
         } while (Payment::where('reference_no', $ref)->exists());
 
         return $ref;
-    }
-
-    // Get a single payment by ID
-    public function getPaymentById(int $paymentId): Payment
-    {
-        $payment = $this->paymentRepository->findById($paymentId);
-        if (!$payment) {
-            throw new \Exception('Payment not found.');
-        }
-        return $payment;
     }
 }
