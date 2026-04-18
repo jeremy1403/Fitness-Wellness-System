@@ -4,8 +4,8 @@ use App\Http\Controllers\Api\ClassScheduleController;
 use App\Http\Controllers\Api\FitnessClassController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\BookingController;
 
-// use App\Http\Controllers\Api\TrainerController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -30,6 +30,11 @@ Route::prefix('v1')->group(function () {
         ->except(['index']);
 
     // Module 3: Bookings
+    Route::middleware('auth:sanctum')->prefix('bookings')->group(function () {
+        Route::post('/', [BookingController::class, 'store']);
+        Route::get('/history', [BookingController::class, 'history']);
+        Route::post('/{id}/cancel', [BookingController::class, 'cancel']);
+    });
     // Route::prefix('bookings')->group(base_path('routes/api/bookings.php'));
 
     // Module 4: Memberships & Payments
@@ -38,6 +43,7 @@ Route::prefix('v1')->group(function () {
     // Health check (includes DB connectivity)
     Route::get('/health', function () {
         $dbOk = false;
+
         try {
             DB::connection()->getPdo();
             $dbOk = true;

@@ -25,7 +25,6 @@ class EloquentBookingRepository implements BookingRepositoryInterface
     {
         return Booking::where('user_id', $userId)
             ->where('class_schedule_id', $classScheduleId)
-            ->where('status', '!=', 'cancelled')
             ->exists();
     }
 
@@ -33,7 +32,9 @@ class EloquentBookingRepository implements BookingRepositoryInterface
     {
         return Booking::where('user_id', $userId)
             ->where('status', 'booked')
-            ->whereDate('booked_at', $date)
+            ->whereHas('classSchedule', function ($query) use ($date) {
+                $query->whereDate('start_datetime', $date);
+            })
             ->count();
     }
 
@@ -47,5 +48,12 @@ class EloquentBookingRepository implements BookingRepositoryInterface
         $booking->update($data);
 
         return $booking->fresh();
+    }
+
+    public function countBookingsForSchedule(int $scheduleId): int
+    {
+        return Booking::where('class_schedule_id', $scheduleId)
+            ->where('status', 'booked')
+            ->count();
     }
 }
