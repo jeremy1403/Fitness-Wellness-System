@@ -21,16 +21,18 @@ class ClassScheduleController extends Controller
         ]);
     }
 
-    // Save new schedule
+ // Save new schedule
+// Save new schedule
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            // 1. 验证课程 ID，并检查是否已经分配给该教练
+            // 验证课程 ID，改为：同一教练在【同一时间】不能排【同一门课】
             'fitness_class_id' => [
                 'required',
                 'exists:fitness_classes,id',
                 \Illuminate\Validation\Rule::unique('class_schedules')->where(function ($query) use ($request) {
-                    return $query->where('trainer_id', $request->trainer_id);
+                    return $query->where('trainer_id', $request->trainer_id)
+                                 ->where('start_datetime', $request->start_datetime); // <--- 加上时间的判断！
                 }),
             ],
             'trainer_id' => 'required|exists:trainers,id',
@@ -39,7 +41,8 @@ class ClassScheduleController extends Controller
             'end_datetime'   => 'required|date|after:start_datetime',
             'capacity'         => 'required|integer|min:1|max:30',
         ], [
-            'fitness_class_id.unique' => 'This class has already been assigned to this trainer!',
+            // 报错信息也要改一下
+            'fitness_class_id.unique' => 'You already have this class scheduled at this exact time!',
             'start_datetime.after' => 'The start time cannot be in the past.',
         ]);
 

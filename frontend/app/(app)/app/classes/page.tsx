@@ -7,18 +7,23 @@ import {
   deleteFitnessClass, 
   updateFitnessClass 
 } from "@/lib/api/classes.api";
-import { useAuth } from "@/lib/auth/context"; // 使用 Auth Context 获取角色
+// 注意：你需要确保有获取所有 schedules 的 API 方法
+import { getSchedules } from "@/lib/api/schedules.api"; 
+import { useAuth } from "@/lib/auth/context";
 import Link from "next/link";
 
 type SetupMode = "automated" | "simple";
 type ClassType = "Yoga" | "Spin" | "HIIT" | "General";
 
 export default function UserClassesPage() {
-  // const { primaryRole } = useAuth(); // 获取角色 (trainer, member, admin)
-  const { primaryRole, user } = useAuth(); // 把 user 也解构出来
+  const { primaryRole, user } = useAuth();
+  
+  // 数据状态
   const [classList, setClassList] = useState<any[]>([]);
+  const [scheduleList, setScheduleList] = useState<any[]>([]); // 存放排期数据
   const [loading, setLoading] = useState(true);
   
+  // 表单状态 (Trainer专用)
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [durationMinutes, setDurationMinutes] = useState(60);
@@ -29,6 +34,7 @@ export default function UserClassesPage() {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
 
+  // 自动时长策略
   const getAutoDuration = () => {
     const rules: Record<ClassType, number> = {
       'Yoga': 60, 'Spin': 45, 'HIIT': 30, 'General': 60
@@ -36,30 +42,64 @@ export default function UserClassesPage() {
     return rules[classType];
   };
 
-  const loadClasses = async () => {
-    try {
-      setLoading(true);
-      const data = await getFitnessClasses();
-      setClassList(data.data || data);
-    } catch (e) {
-      console.error("Fetch error:", e);
-    } finally {
-      setLoading(false);
-    }
+
+  // 同时加载 Classes 和 Schedules
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        // 并发请求，提高加载速度
+        const [classesRes, schedulesRes] = await Promise.all([
+          getFitnessClasses(),
+          getSchedules() 
+        ]);
+        
+        // 修复 TypeScript 报错：先检查是否已经是数组，如果不是再尝试取 .data
+        const finalClasses = Array.isArray(classesRes) ? classesRes : (classesRes as any)?.data || [];
+        const finalSchedules = Array.isArray(schedulesRes) ? schedulesRes : (schedulesRes as any)?.data || [];
+
+        setClassList(finalClasses);
+        setScheduleList(finalSchedules);
+      } catch (e) {
+        console.error("Fetch error:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+  useEffect(() => { loadData(); }, []);
+
+  // --- 核心逻辑：获取某个 Class 的排期统计和最新排期 ---
+  const getClassStats = (classId: number) => {
+    // 1. 找到该课程下所有状态为 open 的排期
+    const relatedSchedules = scheduleList.filter(
+      (s) => s.fitness_class_id === classId && s.status === 'open'
+    );
+    
+    // 2. 过滤出未来的课程（当前时间之后的）
+    const now = new Date().getTime();
+    const upcomingSchedules = relatedSchedules.filter(
+      (s) => new Date(s.start_datetime).getTime() >= now
+    );
+
+    // 3. 按时间先后排序，最先开始的排在前面
+    upcomingSchedules.sort((a, b) => 
+      new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime()
+    );
+
+    return {
+      count: relatedSchedules.length, // 总共有多少个不同时间的排期
+      latest: upcomingSchedules[0] || null // 最接近的下一次课程
+    };
   };
 
-  useEffect(() => { loadClasses(); }, []);
-
+  // --- Trainer 操作函数 ---
   const startEdit = (cls: any) => {
     setEditingId(cls.id);
     setName(cls.title);
     setDescription(cls.description || "");
-    
-    // 核心修改：设置 Class Type 和 Duration
     setClassType(cls.class_type || "General");
     setDurationMinutes(cls.duration_minutes);
     
-    // 逻辑判断：如果数据库里的时间不符合预设策略，自动切换到 simple 模式
     const autoTime = { 'Yoga': 60, 'Spin': 45, 'HIIT': 30, 'General': 60 }[cls.class_type as ClassType];
     if (cls.duration_minutes !== autoTime) {
       setSetupMode("simple");
@@ -107,7 +147,7 @@ export default function UserClassesPage() {
       }
 
       cancelEdit();
-      await loadClasses();
+      await loadData(); // 重新加载数据
     } catch (e: any) {
       setError(e.response?.data?.message || "Operation failed.");
     } finally {
@@ -123,15 +163,27 @@ export default function UserClassesPage() {
     } catch (e) { alert("Delete failed."); }
   };
 
+  // --- 渲染部分 ---
   return (
     <div className="flex flex-col gap-6">
+      {/* 顶部标题栏 */}
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900">
-          {primaryRole === 'trainer' ? (editingId ? "Edit Class" : "Class Management") : "Class Catalog"}
-        </h1>
-        <Link href="/app" className="text-sm text-slate-500 hover:text-slate-900">← Back</Link>
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">
+            {primaryRole === 'trainer' ? (editingId ? "Edit Class" : "Class Management") : "Class Catalog"}
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            {primaryRole === 'trainer' 
+              ? "Create and manage your fitness classes." 
+              : "Browse available classes and check schedules."}
+          </p>
+        </div>
+        <Link href="/app" className="text-sm font-medium px-4 py-2 rounded-full bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors">
+          ← Back
+        </Link>
       </div>
 
+      {/* Trainer 表单区 */}
       {primaryRole === "trainer" && (
         <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-3 animate-in fade-in duration-500">
           <section className="rounded-3xl border border-slate-200 bg-white p-6 lg:col-span-2 shadow-sm">
@@ -211,29 +263,30 @@ export default function UserClassesPage() {
         </form>
       )}
 
-      {/* 课程目录列表 */}
+      {/* 课程目录列表区 */}
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold mb-4 text-slate-900">
+        <h2 className="text-lg font-semibold mb-6 text-slate-900">
           {primaryRole === 'trainer' ? "Existing Class Catalog" : "Available Classes"}
         </h2>
+        
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {loading ? (
-            <p className="col-span-full py-10 text-center text-slate-400">Loading classes...</p>
+            <p className="col-span-full py-10 text-center text-slate-400">Loading classes and schedules...</p>
           ) : classList.length === 0 ? (
             <p className="col-span-full py-10 text-center text-slate-400">No classes found.</p>
           ) : classList.map((cls) => {
-            if (primaryRole !== 'trainer' && cls.status === 'inactive') {
-              return null;
-            }
-            // 2. 如果是 Trainer，并且这堂课【不是】自己建的，也【不是】Admin(ID 1)建的，就隐藏掉
-            if (primaryRole === 'trainer' && cls.created_by !== user?.id && cls.created_by !== 1) {
-              return null;
-            }
+            
+            // 权限验证
+            if (primaryRole !== 'trainer' && cls.status === 'inactive') return null;
+            if (primaryRole === 'trainer' && cls.created_by !== user?.id && cls.created_by !== 1) return null;
+
+            // 获取该课程的排期统计数据
+            const stats = getClassStats(cls.id);
 
             return (
-              <div key={cls.id} className="p-6 border border-slate-100 rounded-3xl bg-slate-50 group hover:bg-white hover:border-slate-300 transition-all relative">
+              <div key={cls.id} className="p-6 border border-slate-100 rounded-3xl bg-slate-50 group hover:bg-white hover:border-slate-300 transition-all relative flex flex-col justify-between">
 
-                {/* --- 只有 Trainer 显示 CRUD 按钮 --- */}
+                {/* Trainer 操作按钮 */}
                 {primaryRole === "trainer" && (
                   <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => startEdit(cls)} className="p-2 bg-white text-blue-600 rounded-xl shadow-sm border border-slate-100 hover:bg-blue-50">
@@ -245,18 +298,49 @@ export default function UserClassesPage() {
                   </div>
                 )}
 
-                <h3 className="mt-3 text-xl font-bold text-slate-800">{cls.title}</h3>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs text-slate-500 font-medium">{cls.duration_minutes} MINS</span>
-                  <span className="text-slate-300">•</span>
-                  <span className={`text-xs font-bold uppercase ${cls.status === 'active' ? 'text-green-600' : 'text-slate-400'}`}>
-                    {cls.status}
-                  </span>
-                </div>
-                <p className="mt-4 text-sm text-slate-600 line-clamp-2 h-10">{cls.description || "No description."}</p>
+                {/* 课程基本信息 */}
+                <div>
+                  <h3 className="mt-3 text-xl font-bold text-slate-800 pr-16">{cls.title}</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-slate-500 font-medium">{cls.duration_minutes} MINS</span>
+                    <span className="text-slate-300">•</span>
+                    <span className={`text-xs font-bold uppercase ${cls.status === 'active' ? 'text-green-600' : 'text-slate-400'}`}>
+                      {cls.status}
+                    </span>
+                  </div>
+                  <p className="mt-4 text-sm text-slate-600 line-clamp-2 h-10">{cls.description || "No description."}</p>
 
-                <Link href="/app/booking" className="mt-6 block w-full text-center rounded-full bg-white border border-slate-900 py-3 text-sm font-bold text-slate-900 hover:bg-slate-900 hover:text-white transition-all shadow-sm">
-                  View Schedule & Book
+                  {/* 排期统计信息展示面板 */}
+                  <div className="mt-6 bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Schedules</p>
+                        <p className="text-base font-bold text-indigo-600 mt-1">
+                          {stats.count} {stats.count === 1 ? 'Session' : 'Sessions'} 
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* 显示最近的 schedule */}
+                    <div className="mt-3 pt-3 border-t border-slate-100">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase">Next Session</p>
+                      {stats.latest ? (
+                        <p className="text-xs font-semibold text-slate-700 mt-1">
+                          {new Date(stats.latest.start_datetime).toLocaleDateString('en-GB')} at {new Date(stats.latest.start_datetime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-400 mt-1 italic">No upcoming schedules</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+               {/* 跳转按钮：带着 classId 跳转到 schedule 页面 */}
+                <Link 
+                  href={`/app/schedules?classId=${cls.id}`} 
+                  className="mt-6 block w-full text-center rounded-2xl bg-white border border-slate-900 py-3 text-sm font-bold text-slate-900 hover:bg-slate-900 hover:text-white transition-all shadow-sm"
+                >
+                  {primaryRole === 'trainer' ? "Manage Schedules" : "View In Schedule"}
                 </Link>
               </div>
             );
