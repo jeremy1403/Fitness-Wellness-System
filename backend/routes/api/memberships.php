@@ -32,14 +32,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Get current user's payment history
     Route::get('/payments/my', [PaymentController::class, 'myPayments']);
 
-    // Get a single payment by ID (receipt)
-    Route::get('/payments/{id}', [PaymentController::class, 'show']);
+    // Get all payments for a specific membership
+    Route::get('/payments/membership/{id}', [PaymentController::class, 'byMembership']);
 
     // Process a payment
     Route::post('/payments/process', [PaymentController::class, 'process']);
-
-    // Get payments for a specific membership
-    Route::get('/payments/membership/{id}', [PaymentController::class, 'byMembership']);
 
     // --- Admin Only Routes ---
     Route::middleware('role:admin')->group(function () {
@@ -61,7 +58,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Create a new plan
         Route::post('/plans', [MembershipController::class, 'createPlan']);
+
         // Update a plan
         Route::put('/plans/{id}', [MembershipController::class, 'updatePlan']);
     });
+
+    // Get a single payment by ID (receipt)
+    Route::get('/payments/{id}', [PaymentController::class, 'show']);
 });
