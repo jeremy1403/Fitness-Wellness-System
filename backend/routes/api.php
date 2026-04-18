@@ -1,11 +1,10 @@
 <?php
 
+use App\Http\Controllers\Api\ClassScheduleController;
+use App\Http\Controllers\Api\FitnessClassController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\BookingController;
-use App\Http\Controllers\Api\FitnessClassController;
-use App\Http\Controllers\Api\ClassScheduleController;
-// use App\Http\Controllers\Api\TrainerController;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,13 +23,11 @@ Route::prefix('v1')->group(function () {
 
     // Module 2: Fitness Classes & Schedules
     Route::apiResource('classes', FitnessClassController::class);
-    Route::apiResource('schedules', ClassScheduleController::class);
-
-    Route::get('trainers', function () {
-        return \App\Models\User::whereHas('roles', function ($q) {
-            $q->where('name', 'trainer');
-        })->get();
-    });
+    Route::get('schedules', [ClassScheduleController::class, 'index'])
+        ->middleware(['provider:getAllSchedules', 'consumer'])
+        ->name('schedules.index');
+    Route::apiResource('schedules', ClassScheduleController::class)
+        ->except(['index']);
 
     // Module 3: Bookings
     Route::middleware('auth:sanctum')->prefix('bookings')->group(function () {

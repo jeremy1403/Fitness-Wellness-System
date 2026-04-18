@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { Shield } from "lucide-react";
 import { useAuth } from "@/lib/auth/context";
 import { adminApi } from "@/lib/api/admin.api";
@@ -10,6 +11,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EditorialHero } from "@/components/decor/EditorialHero";
+import { FadeIn } from "@/components/motion/FadeIn";
 import {
   Table,
   TableBody,
@@ -25,13 +28,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const allRoles: UserRole[] = ["admin", "trainer", "member"];
 
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof ApiError ? error.message : fallback;
 }
+
+const filterOptions: { key: "all" | UserRole; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "admin", label: "Admin" },
+  { key: "trainer", label: "Trainer" },
+  { key: "member", label: "Member" },
+];
 
 export default function AdminRolesPage() {
   const { user: currentUser } = useAuth();
@@ -41,6 +50,7 @@ export default function AdminRolesPage() {
   const [changeLoading, setChangeLoading] = useState<number | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [pulseId, setPulseId] = useState<number | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -63,9 +73,7 @@ export default function AdminRolesPage() {
   }, [fetchUsers]);
 
   const filtered =
-    filter === "all"
-      ? users
-      : users.filter((u) => u.roles.includes(filter));
+    filter === "all" ? users : users.filter((u) => u.roles.includes(filter));
 
   const handleChangeRole = async (user: User, newRole: UserRole) => {
     if (user.roles.length === 1 && user.roles[0] === newRole) return;
@@ -76,6 +84,8 @@ export default function AdminRolesPage() {
       setUsers((prev) =>
         prev.map((u) => (u.id === res.data.id ? res.data : u)),
       );
+      setPulseId(user.id);
+      setTimeout(() => setPulseId(null), 900);
     } catch (error) {
       setActionError(
         getErrorMessage(error, "Unable to change the role for this user."),
@@ -93,143 +103,174 @@ export default function AdminRolesPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Roles</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            View and manage user roles.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-slate-500">
-          <Shield className="h-4 w-4" />
-          <span>
-            {allRoles.length} system roles
-          </span>
-        </div>
-      </div>
-
-      {(loadError || actionError) && (
-        <div className="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between">
-          <p>{actionError ?? loadError}</p>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => fetchUsers()}
-            disabled={loading}
-            className="border-red-200 bg-white text-red-700 hover:bg-red-100"
-          >
-            {loading ? "Retrying..." : "Retry"}
-          </Button>
-        </div>
-      )}
-
-      {/* Filter tabs */}
-      <Tabs
-        value={filter}
-        onValueChange={(v) => setFilter(v as "all" | UserRole)}
+    <div className="flex flex-col gap-8">
+      <EditorialHero
+        variant="amber"
+        eyebrow="Role assignment"
+        title={
+          <>
+            Who can do <em className="italic text-amber-100">what</em>
+          </>
+        }
+        description="Three roles. Clear boundaries. Change them when your team evolves."
+        compact
       >
-        <TabsList>
-          <TabsTrigger value="all">All ({roleCounts.all})</TabsTrigger>
-          <TabsTrigger value="admin">Admin ({roleCounts.admin})</TabsTrigger>
-          <TabsTrigger value="trainer">
-            Trainer ({roleCounts.trainer})
-          </TabsTrigger>
-          <TabsTrigger value="member">Member ({roleCounts.member})</TabsTrigger>
-        </TabsList>
-      </Tabs>
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white backdrop-blur">
+          <Shield className="size-3.5" />
+          {allRoles.length} system roles
+        </span>
+      </EditorialHero>
 
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="space-y-4 p-5">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : loadError && users.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 px-5 py-12 text-center">
-              <p className="text-sm text-slate-500">{loadError}</p>
-              <Button
+      <AnimatePresence>
+        {(loadError || actionError) && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="flex flex-col gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <p>{actionError ?? loadError}</p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => fetchUsers()}
+              disabled={loading}
+              className="border-rose-200 bg-white text-rose-700 hover:bg-rose-100"
+            >
+              {loading ? "Retrying..." : "Retry"}
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <FadeIn>
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xs">
+          {filterOptions.map((opt) => {
+            const active = filter === opt.key;
+            return (
+              <button
+                key={opt.key}
                 type="button"
-                variant="outline"
-                onClick={() => fetchUsers()}
+                onClick={() => setFilter(opt.key)}
+                className="relative rounded-xl px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900"
               >
-                Try again
-              </Button>
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="px-5 py-12 text-center text-sm text-slate-400">
-              No users found with this role.
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((user) => {
-                  const isSelf = currentUser?.id === user.id;
-                  const currentRole = user.roles[0] ?? "member";
+                {active && (
+                  <motion.span
+                    layoutId="roles-filter-indicator"
+                    className="absolute inset-0 rounded-xl bg-amber-50 ring-1 ring-amber-200"
+                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                  />
+                )}
+                <span className={`relative ${active ? "text-amber-800" : ""}`}>
+                  {opt.label}{" "}
+                  <span className="text-xs text-slate-400">({roleCounts[opt.key]})</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </FadeIn>
 
-                  return (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium text-slate-900">
-                        {user.name}
-                        {isSelf && (
-                          <Badge
-                            variant="outline"
-                            className="ml-2 text-xs text-slate-400"
-                          >
-                            You
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-slate-500">
-                        {user.email}
-                      </TableCell>
-                      <TableCell>
-                        {isSelf ? (
-                          <Badge variant="outline" className="text-xs">
-                            {currentRole.charAt(0).toUpperCase() +
-                              currentRole.slice(1)}
-                          </Badge>
-                        ) : (
-                          <Select
-                            value={currentRole}
-                            onValueChange={(value) =>
-                              handleChangeRole(user, value as UserRole)
-                            }
-                            disabled={changeLoading === user.id}
-                          >
-                            <SelectTrigger className="h-8 w-32">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {allRoles.map((role) => (
-                                <SelectItem key={role} value={role}>
-                                  {role.charAt(0).toUpperCase() + role.slice(1)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      <FadeIn delay={0.1}>
+        <Card className="overflow-hidden border-slate-200">
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="space-y-4 p-5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : loadError && users.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 px-5 py-12 text-center">
+                <p className="text-sm text-slate-500">{loadError}</p>
+                <Button type="button" variant="outline" onClick={() => fetchUsers()}>
+                  Try again
+                </Button>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="px-5 py-12 text-center text-sm text-slate-400">
+                No users found with this role.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((user, idx) => {
+                    const isSelf = currentUser?.id === user.id;
+                    const currentRole = user.roles[0] ?? "member";
+                    const isPulsing = pulseId === user.id;
+
+                    return (
+                      <motion.tr
+                        key={user.id}
+                        layout
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{
+                          opacity: 1,
+                          y: 0,
+                          backgroundColor: isPulsing ? "rgb(254 243 199)" : "rgba(0,0,0,0)",
+                        }}
+                        transition={{
+                          opacity: { duration: 0.3, delay: Math.min(idx, 12) * 0.04 },
+                          y: { duration: 0.3, delay: Math.min(idx, 12) * 0.04 },
+                          backgroundColor: { duration: 0.8, ease: "easeOut" },
+                        }}
+                        className="border-b border-slate-100 transition-colors hover:bg-slate-50/60"
+                      >
+                        <TableCell className="font-medium text-slate-900">
+                          {user.name}
+                          {isSelf && (
+                            <Badge
+                              variant="outline"
+                              className="ml-2 text-xs text-slate-400"
+                            >
+                              You
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-slate-500">{user.email}</TableCell>
+                        <TableCell>
+                          {isSelf ? (
+                            <Badge variant="outline" className="text-xs capitalize">
+                              {currentRole}
+                            </Badge>
+                          ) : (
+                            <Select
+                              value={currentRole}
+                              onValueChange={(value) =>
+                                handleChangeRole(user, value as UserRole)
+                              }
+                              disabled={changeLoading === user.id}
+                            >
+                              <SelectTrigger className="h-8 w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {allRoles.map((role) => (
+                                  <SelectItem key={role} value={role}>
+                                    {role.charAt(0).toUpperCase() + role.slice(1)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </TableCell>
+                      </motion.tr>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </FadeIn>
     </div>
   );
 }

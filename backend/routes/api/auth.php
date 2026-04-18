@@ -21,11 +21,19 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
+    ->middleware('throttle:6,1');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])
+    ->middleware('throttle:6,1');
+
 // ── Authenticated ───────────────────────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::put('/profile', [AuthController::class, 'updateProfile']);
+
+    Route::get('/trainers', [UserController::class, 'trainers'])
+        ->middleware(['provider:getAllActiveTrainers', 'consumer']);
 
     // ── Admin-only: User management ─────────────────────────────────────
     Route::middleware('role:admin')->prefix('users')->group(function () {

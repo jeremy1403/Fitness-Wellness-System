@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { createFitnessClass, getFitnessClasses, deleteFitnessClass, updateFitnessClass } from "@/lib/api/classes.api";
 import Link from "next/link";
+import { useAuth } from "@/lib/auth/context";
+
 
 type SetupMode = "automated" | "simple";
 type ClassType = "Yoga" | "Spin" | "HIIT" | "General";
@@ -13,6 +15,7 @@ export default function AdminCreateClassPage() {
   
   // --- 表单状态 ---
   const [name, setName] = useState("");
+  const { primaryRole, user } = useAuth();
   const [description, setDescription] = useState("");
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [classType, setClassType] = useState<ClassType>("Yoga"); 
@@ -124,6 +127,7 @@ export default function AdminCreateClassPage() {
         description: description,
         duration_minutes: setupMode === 'simple' ? durationMinutes : getAutoDuration(),
         status: status,
+        user_id: user?.id,
         // setup_mode: setupMode,
         // class_type: classType,
       };

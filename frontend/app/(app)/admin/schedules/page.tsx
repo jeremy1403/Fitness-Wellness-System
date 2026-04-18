@@ -42,8 +42,8 @@ export default function AdminCreateSchedulePage() {
         getSchedules()
       ]);
       setClasses(classesData.data || classesData);
-      setTrainers(trainersData.data || trainersData);
-      setScheduleList(schedulesData.data || schedulesData);
+      setTrainers(trainersData);
+      setScheduleList(schedulesData);
     } catch (err) {
       setError("Could not load initial data.");
     } finally {
@@ -202,6 +202,26 @@ export default function AdminCreateSchedulePage() {
                 {trainers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             </label>
+            {/* <label className="text-sm font-medium text-slate-700 sm:col-span-2">
+              Assign Trainer
+              <select value={trainerId} 
+                onChange={(e) => setTrainerId(e.target.value)} 
+                required 
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 bg-white"
+              >
+                <option value="" disabled>Choose a trainer...</option>
+                
+                {trainers && trainers.length > 0 ? (
+                  trainers.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.user?.name || t.name} (ID: {t.id})
+                    </option>
+                  ))
+                ) : (
+                  <option disabled>No trainers found</option>
+                )}
+              </select>
+            </label> */}
 
             <label className="text-sm font-medium text-slate-700">
               Start Time
@@ -271,7 +291,7 @@ export default function AdminCreateSchedulePage() {
                 return (
                   <tr key={item.id} className="hover:bg-slate-50 transition group">
                     <td className="px-4 py-3 font-medium text-slate-900">{item.fitness_class?.title}</td>
-                    <td className="px-4 py-3">{item.trainer?.name}</td>
+                    <td className="px-4 py-3">{item.trainer?.user?.name ?? item.trainer?.name}</td>
                     <td className="px-4 py-3 text-xs">
                       <div className="font-semibold">{start.date}</div>
                       <div className="text-slate-400">{start.time} - {end.time}</div>

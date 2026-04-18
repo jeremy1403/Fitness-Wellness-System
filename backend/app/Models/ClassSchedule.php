@@ -33,7 +33,7 @@ class ClassSchedule extends Model
 
     public function trainer(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'trainer_id');
+        return $this->belongsTo(Trainer::class, 'trainer_id');
     }
 
     public function bookings(): HasMany

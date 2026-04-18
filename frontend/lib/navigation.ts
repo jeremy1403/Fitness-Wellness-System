@@ -23,6 +23,8 @@ export type NavItem = {
   icon: LucideIcon;
 };
 
+export type RouteCardItem = Pick<NavItem, "href" | "label" | "description">;
+
 export const userNav: NavItem[] = [
   {
     href: "/app",
@@ -155,5 +157,10 @@ export const adminNav: NavItem[] = [
   },
 ];
 
-export const filterNav = (items: NavItem[], currentHref: string) =>
-  items.filter((item) => item.href !== currentHref);
+export const filterNav = (
+  items: NavItem[],
+  currentHref: string,
+): RouteCardItem[] =>
+  items
+    .filter((item) => item.href !== currentHref)
+    .map(({ href, label, description }) => ({ href, label, description }));

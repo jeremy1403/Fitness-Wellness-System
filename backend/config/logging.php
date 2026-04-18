@@ -81,6 +81,19 @@ return [
             'replace_placeholders' => true,
         ],
 
+        'provider' => [
+            'driver' => 'stack',
+            'channels' => ['provider_file', 'stderr'],
+            'ignore_exceptions' => false,
+        ],
+
+        'provider_file' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/provider.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'replace_placeholders' => true,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

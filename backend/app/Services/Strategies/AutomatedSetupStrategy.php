@@ -2,14 +2,14 @@
 
 namespace App\Services\Strategies;
 
-use App\Models\FitnessClass;
 use App\Models\ClassSchedule;
+use App\Models\FitnessClass;
 
 class AutomatedSetupStrategy implements ClassSetupStrategyInterface
 {
     public function setup(FitnessClass $fitnessClass, array $data): void
     {
-        // 1. 定义配置映射
+        // 1. Define configuration mapping
         $configs = [
             'Yoga' => ['duration' => 60, 'capacity' => 15],
             'Spin' => ['duration' => 45, 'capacity' => 20],
@@ -19,12 +19,12 @@ class AutomatedSetupStrategy implements ClassSetupStrategyInterface
         $type = $data['class_type'] ?? 'General';
         $config = $configs[$type] ?? ['duration' => 60, 'capacity' => 20];
 
-        // 2. 【重要】更新主表的时长，因为你的 Migration 里有这个字段
+        // 2.Update the duration in the main table, to Migration table contains this field.
         $fitnessClass->update([
-            'duration_minutes' => $config['duration']
+            'duration_minutes' => $config['duration'],
         ]);
 
-        // 3. 自动创建课表 (Schedules)
+        // 3. Automatically create timetables.
         ClassSchedule::create([
             'fitness_class_id' => $fitnessClass->id,
             'start_time' => now()->addDay()->setTime(10, 0),

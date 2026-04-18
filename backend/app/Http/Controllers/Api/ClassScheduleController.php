@@ -4,23 +4,24 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ClassSchedule;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ClassScheduleController extends Controller
 {
-    //Retrieve all course schedules  including related data
+    // Retrieve all course schedules  including related data
     public function index(): JsonResponse
     {
-        $schedules = ClassSchedule::with(['fitnessClass', 'trainer'])
+        $schedules = ClassSchedule::with(['fitnessClass', 'trainer.user'])
             ->latest('start_datetime')
             ->get();
 
-        return response()->json($schedules);
+        return response()->json([
+            'data' => $schedules,
+        ]);
     }
-    
 
-    //Save new schedule
+    // Save new schedule
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -32,13 +33,14 @@ class ClassScheduleController extends Controller
                     return $query->where('trainer_id', $request->trainer_id);
                 }),
             ],
-            'trainer_id' => 'required|exists:users,id', 
+            'trainer_id' => 'required|exists:trainers,id',
             
-            'start_datetime' => 'required|date',
+            'start_datetime'   => 'required|date|after:now',
             'end_datetime'   => 'required|date|after:start_datetime',
-            'capacity'       => 'required|integer',
+            'capacity'         => 'required|integer|min:1|max:30',
         ], [
             'fitness_class_id.unique' => 'This class has already been assigned to this trainer!',
+            'start_datetime.after' => 'The start time cannot be in the past.',
         ]);
 
         // 现在的 $validated 包含了所有字段，包括 trainer_id
@@ -46,7 +48,7 @@ class ClassScheduleController extends Controller
 
         return response()->json([
             'message' => 'Schedule created successfully!',
-            'data' => $schedule->load(['fitnessClass', 'trainer'])
+            'data' => $schedule->load(['fitnessClass', 'trainer.user']),
         ], 201);
     }
 
@@ -54,15 +56,15 @@ class ClassScheduleController extends Controller
     {
         $validated = $request->validate([
             'fitness_class_id' => 'required',
-            'trainer_id'       => 'required',
-            'start_datetime'   => 'required|date',
-            'end_datetime'     => 'required|date',
-            'capacity'         => 'required|integer|min:1',
+            'trainer_id' => 'required',
+            'start_datetime' => 'required|date',
+            'end_datetime' => 'required|date',
+            'capacity' => 'required|integer|min:1',
         ]);
 
         $schedule = ClassSchedule::find($id);
 
-        if (!$schedule) {
+        if (! $schedule) {
             return response()->json(['message' => 'Schedule not found'], 404);
         }
 
@@ -70,15 +72,16 @@ class ClassScheduleController extends Controller
 
         return response()->json([
             'message' => 'Schedule updated successfully!',
-            'data' => $schedule
+            'data' => $schedule,
         ]);
     }
-    //Delete scheduling
+
+    // Delete scheduling
     public function destroy($id): JsonResponse
     {
         $schedule = ClassSchedule::find($id);
 
-        if (!$schedule) {
+        if (! $schedule) {
             return response()->json(['message' => 'Schedule not found'], 404);
         }
 

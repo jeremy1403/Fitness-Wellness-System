@@ -23,7 +23,6 @@ class UpdateProfileRequest extends FormRequest
                 'max:255',
                 Rule::unique('users', 'email')->ignore($this->user()->id),
             ],
-            'password' => ['sometimes', 'string', 'min:8', 'confirmed'],
         ];
     }
 
@@ -31,8 +30,6 @@ class UpdateProfileRequest extends FormRequest
     {
         return [
             'email.unique' => 'This email address is already taken.',
-            'password.min' => 'Password must be at least 8 characters.',
-            'password.confirmed' => 'Password confirmation does not match.',
         ];
     }
 }

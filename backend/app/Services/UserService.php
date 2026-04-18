@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\DTOs\Auth\UpdateProfileData;
 use App\Models\User;
+use App\Repositories\Contracts\TrainerRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Support\AppLogger;
 
@@ -11,11 +12,21 @@ class UserService
 {
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
+        private readonly TrainerRepositoryInterface $trainerRepository,
     ) {}
 
     public function getAllUsers(): \Illuminate\Database\Eloquent\Collection
     {
         return $this->userRepository->all();
+    }
+
+    public function getAllActiveTrainers(): \Illuminate\Database\Eloquent\Collection
+    {
+        $trainers = $this->trainerRepository->getActive();
+
+        AppLogger::info('auth', 'Active trainers retrieved', ['count' => $trainers->count()]);
+
+        return $trainers;
     }
 
     public function getUserById(int $id): ?User

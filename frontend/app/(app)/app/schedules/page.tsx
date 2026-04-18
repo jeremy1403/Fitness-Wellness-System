@@ -20,7 +20,7 @@ export default function UserSchedulesPage() {
   const [scheduleList, setScheduleList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // --- 表单状态 ---
+  // --- Form Status ---
   const [classId, setClassId] = useState("");
   const [trainerId, setTrainerId] = useState("");
   const [startTime, setStartTime] = useState("");
@@ -31,7 +31,7 @@ export default function UserSchedulesPage() {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  // 1. 初始化数据
+// 1. Initialize data
   const loadInitialData = async () => {
     try {
       setLoading(true);
@@ -40,14 +40,11 @@ export default function UserSchedulesPage() {
         getTrainers(),
         getSchedules()
       ]);
+      
       setClasses(classesData.data || classesData);
-      setTrainers(trainersData.data || trainersData);
-      setScheduleList(schedulesData.data || schedulesData);
+      setTrainers(trainersData);
+      setScheduleList(schedulesData);
 
-      // 如果当前用户是 Trainer，默认选中自己
-      if (primaryRole === 'trainer' && user) {
-        setTrainerId(String(user.id));
-      }
     } catch (err) {
       setError("Could not load initial data.");
     } finally {
@@ -57,7 +54,23 @@ export default function UserSchedulesPage() {
 
   useEffect(() => { loadInitialData(); }, []);
 
-  // 2. 自动化策略：计算结束时间
+  useEffect(() => {
+    // only be executed when the role is a coach, and the user data and the trainers list are both loaded.
+    if (primaryRole === 'trainer' && user && trainers.length > 0) {
+      const myTrainerProfile = trainers.find(
+        (t: any) => t.name === user.name
+      );
+
+      if (myTrainerProfile) {
+        setTrainerId(String(myTrainerProfile.id)); 
+        console.log("[Successfully locked] Coach table ID has been set to:", myTrainerProfile.id);
+      } else {
+        console.error("[Matchmaking failed. The name could not be found in the coach roster.]", user.name, "the coach");
+      }
+    }
+  }, [user, primaryRole, trainers]);
+  
+  // 2. Automation strategy: Calculate end time
   useEffect(() => {
     const selectedClass = classes.find(c => String(c.id) === String(classId));
     if (selectedClass && startTime) {
@@ -69,14 +82,14 @@ export default function UserSchedulesPage() {
     }
   }, [classId, startTime, classes]);
 
-  // --- 辅助：适配日期输入框格式 ---
+  // --- Adapt date input box format ---
   const formatToInput = (str: string) => {
     if (!str) return "";
     const d = new Date(str);
     return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   };
 
-  // --- 辅助：格式化日期显示 ---
+  // --- Formatted date display ---
   const formatDisplayDate = (dateStr: string) => {
     const d = new Date(dateStr);
     return {
@@ -85,7 +98,7 @@ export default function UserSchedulesPage() {
     };
   };
 
-  // --- 管理功能 ---
+  // --- Management functions ---
   const startEdit = (item: any) => {
     setEditingId(item.id);
     setClassId(String(item.fitness_class_id));
@@ -160,7 +173,7 @@ export default function UserSchedulesPage() {
         <Link href="/app" className="text-sm font-medium text-slate-500 hover:text-slate-900">← Back</Link>
       </div>
 
-      {/* --- Trainer 表单 --- */}
+      {/* --- Trainer Form --- */}
       {primaryRole === "trainer" && (
         <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-3 animate-in fade-in duration-500">
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
@@ -172,7 +185,8 @@ export default function UserSchedulesPage() {
                 <select value={classId} onChange={(e) => setClassId(e.target.value)} required className="mt-2 w-full rounded-2xl border px-4 py-3 bg-white outline-none">
                   <option value="" disabled>Choose a fitness class...</option>
                   {classes
-                    .filter(c => c.status === 'active') // 只保留 status 为 active 的课
+                    // Must be active, and (creator is itself or creator is 1)
+                    .filter(c => c.status === 'active' && (c.created_by === user?.id || c.created_by === 1)) 
                     .map(c => (
                       <option key={c.id} value={c.id}>
                         {c.title}
@@ -181,12 +195,22 @@ export default function UserSchedulesPage() {
                   }
                 </select>
               </label>
-              <label className="text-sm font-medium sm:col-span-2 text-slate-700">
+                <label className="text-sm font-medium sm:col-span-2 text-slate-700">
                 Assign Trainer
-                <select value={trainerId} onChange={(e) => setTrainerId(e.target.value)} required className="mt-2 w-full rounded-2xl border px-4 py-3 bg-white outline-none">
-                  <option value="" disabled>Choose a trainer...</option>
-                  {trainers.map(t => <option key={t.id} value={t.id}>{t.name} {t.id === user?.id ? "(Me)" : ""}</option>)}
-                </select>
+                <div className="mt-2 w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-slate-600 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{user?.name}</span>
+                    <span className="text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full font-bold">
+                      ME
+                    </span>
+                  </div>
+                  {!trainerId && <span className="text-[10px] text-red-500 font-bold">ID NOT FOUND!</span>}
+                  
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                </div>
+                <input type="hidden" value={trainerId} />
               </label>
 
               <label className="text-sm font-medium text-slate-700">
@@ -228,7 +252,7 @@ export default function UserSchedulesPage() {
         </form>
       )}
 
-      {/* --- Schedule 列表 --- */}
+      {/* --- Schedule List --- */}
       <div className="flex flex-col gap-4">
         {loading ? (
           <div className="text-center py-10 text-slate-400">Loading schedules...</div>
@@ -244,7 +268,7 @@ export default function UserSchedulesPage() {
           return (
             <div key={item.id} className="group relative flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-3xl bg-white p-6 border border-slate-100 shadow-sm hover:border-blue-200 hover:shadow-md transition-all duration-300">
 
-              {/* --- Trainer CRUD 按钮 --- */}
+              {/* --- Trainer CRUD button --- */}
               {primaryRole === "trainer" && (
                 <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button onClick={() => startEdit(item)} className="p-2 bg-slate-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors">
