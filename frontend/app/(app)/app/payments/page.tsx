@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { membershipApi, MembershipPlan, Payment } from "@/lib/api/membership.api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,8 @@ type PaymentMethod = "cash" | "transfer" | "card_mock";
 
 export default function PaymentsPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const planIdParam = searchParams.get("plan_id");
 
+  const [planIdParam, setPlanIdParam] = useState<string | null>(null);
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +28,8 @@ export default function PaymentsPage() {
   }, [planIdParam, plans]);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setPlanIdParam(params.get("plan_id"));
     fetchData();
   }, []);
 
@@ -41,7 +42,7 @@ export default function PaymentsPage() {
 
       setPayments(paymentsRes.data);
       setPlans(plansRes.data);
-    } catch (err) {
+    } catch {
       setMessage("Failed to load payment data.");
     } finally {
       setLoading(false);
@@ -93,9 +94,7 @@ export default function PaymentsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-slate-900">
-          Payments
-        </h1>
+        <h1 className="text-2xl font-semibold text-slate-900">Payments</h1>
         <p className="mt-1 text-sm text-slate-500">
           Complete your checkout or view your payment history.
         </p>
