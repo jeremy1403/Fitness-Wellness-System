@@ -7,6 +7,7 @@ export async function PUT(
 ) {
   const { id } = await params;
   const body = await request.json();
+
   const { res, data } = await membershipBackendJson(
     `/memberships/plans/${id}`,
     {
@@ -15,5 +16,6 @@ export async function PUT(
       body: JSON.stringify(body),
     }
   );
+
   return jsonResponse(data, res.status);
 }

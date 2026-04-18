@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { membershipApi, Membership, MembershipPlan } from "@/lib/api/membership.api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 export default function MembershipPage() {
+  const searchParams = useSearchParams();
+  const success = searchParams.get("success");
+
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [activeMembership, setActiveMembership] = useState<Membership | null>(null);
   const [loading, setLoading] = useState(true);
@@ -15,6 +19,12 @@ export default function MembershipPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (success === "payment") {
+      setMessage("Payment successful. Your membership has been activated.");
+    }
+  }, [success]);
 
   async function fetchData() {
     try {
@@ -38,6 +48,7 @@ export default function MembershipPage() {
   async function handleCancel() {
     if (!activeMembership) return;
     if (!confirm("Are you sure you want to cancel your membership?")) return;
+
     try {
       await membershipApi.cancel(activeMembership.id);
       setMessage("Membership cancelled.");
@@ -135,7 +146,7 @@ export default function MembershipPage() {
                 disabled={!!activeMembership}
                 onClick={() => handleSubscribe(plan.id)}
               >
-                {activeMembership ? "Already Subscribed" : "Subscribe"}
+                {activeMembership ? "Already Subscribed" : "Proceed to Payment"}
               </Button>
             </Card>
           ))}

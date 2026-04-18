@@ -1,27 +1,84 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { membershipApi, Payment } from "@/lib/api/membership.api";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { membershipApi, MembershipPlan, Payment } from "@/lib/api/membership.api";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
+type PaymentMethod = "cash" | "transfer" | "card_mock";
+
 export default function PaymentsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const planIdParam = searchParams.get("plan_id");
+
+  const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
   const [message, setMessage] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card_mock");
+
+  const selectedPlan = useMemo(() => {
+    if (!planIdParam) return null;
+    const planId = Number(planIdParam);
+    if (Number.isNaN(planId)) return null;
+    return plans.find((plan) => plan.id === planId) ?? null;
+  }, [planIdParam, plans]);
 
   useEffect(() => {
-    fetchPayments();
+    fetchData();
   }, []);
 
-  async function fetchPayments() {
+  async function fetchData() {
     try {
-      const res = await membershipApi.myPayments();
-      setPayments(res.data);
+      const [paymentsRes, plansRes] = await Promise.all([
+        membershipApi.myPayments(),
+        membershipApi.getPlans(),
+      ]);
+
+      setPayments(paymentsRes.data);
+      setPlans(plansRes.data);
     } catch (err) {
-      setMessage("Failed to load payment history.");
+      setMessage("Failed to load payment data.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handlePayNow() {
+    if (!selectedPlan) {
+      setMessage("Selected plan not found.");
+      return;
+    }
+
+    setPaying(true);
+    setMessage("");
+
+    try {
+      const subscribeRes = await membershipApi.subscribe(
+        selectedPlan.id,
+        paymentMethod
+      );
+      const membership = subscribeRes.data;
+
+      await membershipApi.processPayment(
+        membership.id,
+        Number(selectedPlan.price),
+        paymentMethod
+      );
+
+      router.push("/app/membership?success=payment");
+    } catch (err: any) {
+      setMessage(
+        err?.data?.message ||
+        err?.message ||
+        "Payment failed. Please try again."
+      );
+    } finally {
+      setPaying(false);
     }
   }
 
@@ -35,31 +92,129 @@ export default function PaymentsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header */}
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h1 className="text-2xl font-semibold text-slate-900">
-          Payment History
+          Payments
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-          View all your past payments and receipts.
+          Complete your checkout or view your payment history.
         </p>
       </div>
 
-      {/* Message */}
       {message && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {message}
         </div>
       )}
 
-      {/* Payments List */}
-      {payments.length === 0 ? (
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 text-center">
-          <p className="text-slate-500">No payments found.</p>
+      {planIdParam && (
+        <Card className="rounded-3xl border border-blue-200 bg-blue-50 p-6">
+          {!selectedPlan ? (
+            <div className="flex flex-col gap-3">
+              <h2 className="text-lg font-semibold text-slate-900">
+                Checkout
+              </h2>
+              <p className="text-sm text-red-600">
+                The selected plan could not be found.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-5">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Checkout
+                </h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Review your selected membership plan before payment.
+                </p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <p className="text-sm text-slate-500">Plan Name</p>
+                  <p className="text-lg font-semibold text-slate-900">
+                    {selectedPlan.name}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <p className="text-sm text-slate-500">Price</p>
+                  <p className="text-lg font-semibold text-slate-900">
+                    RM {selectedPlan.price}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <p className="text-sm text-slate-500">Duration</p>
+                  <p className="text-lg font-semibold text-slate-900">
+                    {selectedPlan.duration_days} days
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <p className="text-sm text-slate-500">Daily Booking Limit</p>
+                  <p className="text-lg font-semibold text-slate-900">
+                    {selectedPlan.booking_daily_limit} bookings/day
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 md:col-span-2">
+                  <p className="text-sm text-slate-500">Advance Booking</p>
+                  <p className="text-lg font-semibold text-slate-900">
+                    Up to {selectedPlan.booking_advance_days} days ahead
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Payment Method
+                </label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+                  className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+                >
+                  <option value="card_mock">Card</option>
+                  <option value="transfer">Bank Transfer</option>
+                  <option value="cash">Cash</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button onClick={handlePayNow} disabled={paying}>
+                  {paying ? "Processing..." : `Pay Now (RM ${selectedPlan.price})`}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() => router.push("/app/membership")}
+                  disabled={paying}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
+
+      <div className="flex flex-col gap-4">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">
+            Payment History
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            View all your past payments and receipts.
+          </p>
         </div>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {payments.map((payment) => (
+
+        {payments.length === 0 ? (
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 text-center">
+            <p className="text-slate-500">No payments found.</p>
+          </div>
+        ) : (
+          payments.map((payment) => (
             <Card key={payment.id} className="p-6">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -76,6 +231,7 @@ export default function PaymentsPage() {
                     Method: {payment.method}
                   </p>
                 </div>
+
                 <div className="flex flex-col items-end gap-2">
                   <p className="text-xl font-bold text-slate-900">
                     RM {payment.amount}
@@ -92,9 +248,9 @@ export default function PaymentsPage() {
                 </div>
               </div>
             </Card>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
     </div>
   );
 }
