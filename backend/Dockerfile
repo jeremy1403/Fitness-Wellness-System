@@ -85,7 +85,7 @@ RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 storage bootstrap/cache
 
 # Entrypoint — fixes storage permissions when bind mounts override image ownership
-COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Expose port 80 (nginx)
