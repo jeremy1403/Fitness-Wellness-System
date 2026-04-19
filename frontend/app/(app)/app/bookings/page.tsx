@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { bookingsApi } from "@/lib/api/bookings.api";
+import { membershipApi } from "@/lib/api/membership.api";
 import { ApiError } from "@/lib/api/http";
 import type { Booking } from "@/types/booking";
 
@@ -22,6 +23,102 @@ function formatTime(iso: string) {
     minute: "2-digit",
   });
 }
+
+// ─── Membership Banner ────────────────────────────────────────────────────────
+
+function MembershipBanner() {
+  const [status, setStatus] = useState<{
+    is_active: boolean;
+    membership: {
+      status: string;
+      plan?: {
+        name: string;
+        booking_daily_limit: number;
+        booking_advance_days: number;
+      };
+    } | null;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Consuming Module 4 (Membership) web service
+    // GET /api/v1/memberships/status
+    membershipApi
+      .getStatus()
+      .then((res) => setStatus(res.data))
+      .catch(() => setStatus(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm animate-pulse">
+        <div className="h-4 w-32 rounded bg-slate-100" />
+        <div className="mt-2 h-3 w-48 rounded bg-slate-100" />
+      </div>
+    );
+  }
+
+  if (!status || !status.is_active || !status.membership?.plan) {
+    return (
+      <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-100">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-amber-800">No Active Membership</p>
+            <p className="text-xs text-amber-600 mt-0.5">
+              Subscribe to a plan to unlock booking privileges.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const plan = status.membership.plan;
+
+  return (
+    <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-600"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-emerald-800">
+              {plan.name} Plan
+            </p>
+            <p className="text-xs text-emerald-600 mt-0.5">
+              Active membership
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-4">
+          <div className="text-center">
+            <p className="text-lg font-bold text-emerald-700">
+              {plan.booking_daily_limit}
+            </p>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600">
+              Bookings/day
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-bold text-emerald-700">
+              {plan.booking_advance_days}
+            </p>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600">
+              Days advance
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Status Badge ─────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: Booking["status"] }) {
   const styles: Record<string, string> = {
@@ -250,7 +347,6 @@ export default function BookingsPage() {
               Manage your upcoming and past class sessions.
             </p>
           </div>
-          {/* Summary pills */}
           {!loading && bookings.length > 0 && (
             <div className="flex gap-2 mt-3 sm:mt-0">
               <span className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700">
@@ -263,6 +359,9 @@ export default function BookingsPage() {
           )}
         </div>
       </div>
+
+      {/* Membership Status Banner — consumes Module 4 Membership API */}
+      <MembershipBanner />
 
       {/* Filter tabs */}
       {!loading && bookings.length > 0 && (
