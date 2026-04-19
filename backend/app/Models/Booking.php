@@ -39,4 +39,9 @@ class Booking extends Model
     {
         return $this->status === 'cancelled';
     }
+
+    public function getState(): BookingStateInterface
+    {
+        return BookingStateFactory::make($this->status);
+    }
 }
