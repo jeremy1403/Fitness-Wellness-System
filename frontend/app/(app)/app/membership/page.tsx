@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 
 export default function MembershipPage() {
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
-  const [activeMembership, setActiveMembership] = useState<Membership | null>(null);
+  const [currentMembership, setCurrentMembership] = useState<Membership | null>(null);
+  const [historyMemberships, setHistoryMemberships] = useState<Membership[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
@@ -25,12 +26,23 @@ export default function MembershipPage() {
 
   async function fetchData() {
     try {
-      const [plansRes, membershipRes] = await Promise.all([
+      const [plansRes, membershipRes, historyRes] = await Promise.all([
         membershipApi.getPlans(),
         membershipApi.myMembership(),
+        membershipApi.myHistory(),
       ]);
+
       setPlans(plansRes.data);
-      setActiveMembership(membershipRes.data);
+      setHistoryMemberships(historyRes.data);
+
+      const activeMembership = membershipRes.data;
+      if (activeMembership) {
+        setCurrentMembership(activeMembership);
+      } else {
+        const pendingMembership =
+          historyRes.data.find((m) => m.status === "pending") ?? null;
+        setCurrentMembership(pendingMembership);
+      }
     } catch {
       setMessage("Failed to load membership data.");
     } finally {
@@ -43,17 +55,20 @@ export default function MembershipPage() {
   }
 
   async function handleCancel() {
-    if (!activeMembership) return;
+    if (!currentMembership) return;
     if (!confirm("Are you sure you want to cancel your membership?")) return;
 
     try {
-      await membershipApi.cancel(activeMembership.id);
+      await membershipApi.cancel(currentMembership.id);
       setMessage("Membership cancelled.");
-      fetchData();
+      await fetchData();
     } catch {
       setMessage("Failed to cancel membership.");
     }
   }
+
+  const hasBlockingMembership =
+    currentMembership?.status === "active" || currentMembership?.status === "pending";
 
   if (loading) {
     return (
@@ -78,23 +93,24 @@ export default function MembershipPage() {
         </div>
       )}
 
-      {activeMembership ? (
+      {currentMembership?.status === "active" && (
         <div className="rounded-3xl border border-green-200 bg-green-50 p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-green-900">
-                Current Plan: {activeMembership.plan?.name}
+                Current Plan: {currentMembership.plan?.name ?? "Membership"}
               </h2>
               <p className="mt-1 text-sm text-green-700">
-                Valid until: {new Date(activeMembership.end_date).toLocaleDateString()}
+                Valid until: {new Date(currentMembership.end_date).toLocaleDateString()}
               </p>
               <p className="text-sm text-green-700">
                 Status{" "}
                 <Badge className="bg-green-100 text-green-800">
-                  {activeMembership.status}
+                  {currentMembership.status}
                 </Badge>
               </p>
             </div>
+
             <Button
               variant="outline"
               className="border-red-300 text-red-600 hover:bg-red-50"
@@ -104,10 +120,41 @@ export default function MembershipPage() {
             </Button>
           </div>
         </div>
-      ) : (
+      )}
+
+      {currentMembership?.status === "pending" && (
+        <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-amber-900">
+                Pending Membership: {currentMembership.plan?.name ?? "Membership"}
+              </h2>
+              <p className="mt-1 text-sm text-amber-800">
+                Your payment is awaiting admin confirmation. Your membership will be activated once the payment is confirmed.
+              </p>
+              <p className="mt-2 text-sm text-amber-800">
+                Status{" "}
+                <Badge className="bg-amber-100 text-amber-800">
+                  {currentMembership.status}
+                </Badge>
+              </p>
+            </div>
+
+            <Button
+              variant="outline"
+              className="border-red-300 text-red-600 hover:bg-red-50"
+              onClick={handleCancel}
+            >
+              Cancel Pending Membership
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {!currentMembership && (
         <div className="rounded-3xl border border-yellow-200 bg-yellow-50 p-6">
           <p className="text-sm text-yellow-800">
-            You don't have an active membership. Subscribe to a plan below.
+            You don&apos;t have an active membership. Subscribe to a plan below.
           </p>
         </div>
       )}
@@ -116,6 +163,7 @@ export default function MembershipPage() {
         <h2 className="mb-4 text-lg font-semibold text-slate-900">
           Available Plans
         </h2>
+
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {plans.map((plan) => (
             <Card key={plan.id} className="flex flex-col gap-4 p-6">
@@ -130,16 +178,22 @@ export default function MembershipPage() {
                   </span>
                 </p>
               </div>
+
               <ul className="flex flex-col gap-1 text-sm text-slate-600">
                 <li>✓ Up to {plan.booking_daily_limit} bookings/day</li>
                 <li>✓ Book up to {plan.booking_advance_days} days ahead</li>
               </ul>
+
               <Button
                 className="mt-auto"
-                disabled={!!activeMembership}
+                disabled={hasBlockingMembership}
                 onClick={() => handleSubscribe(plan.id)}
               >
-                {activeMembership ? "Already Subscribed" : "Proceed to Payment"}
+                {currentMembership?.status === "active"
+                  ? "Already Subscribed"
+                  : currentMembership?.status === "pending"
+                  ? "Payment Pending Confirmation"
+                  : "Proceed to Payment"}
               </Button>
             </Card>
           ))}
