@@ -324,11 +324,31 @@ function SchedulesContent() {
     return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   };
 
+  // const formatDisplayDate = (dateStr: string) => {
+  //   const d = new Date(dateStr);
+  //   return {
+  //     date: d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }),
+  //     time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  //   };
+  // };
   const formatDisplayDate = (dateStr: string) => {
+    if (!dateStr) return { date: "", time: "" };
+
+    // 解析后端返回的 ISO 字符串
     const d = new Date(dateStr);
+    
+    // 关键：如果你想无视时区转换，直接显示 UTC 时间的数字部分：
+    const hours = String(d.getUTCHours()).padStart(2, '0');
+    const minutes = String(d.getUTCMinutes()).padStart(2, '0');
+    
     return {
-      date: d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }),
-      time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      date: d.toLocaleDateString(undefined, { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric',
+        timeZone: 'UTC' // 强制日期也按 UTC 显示，防止跳天
+      }),
+      time: `${hours}:${minutes}`
     };
   };
 
