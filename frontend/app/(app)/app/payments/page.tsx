@@ -61,35 +61,42 @@ export default function PaymentsPage() {
 
   function validatePaymentDetails(): boolean {
     if (paymentMethod === "card_mock") {
-      if (!cardName.trim()) {
-        setMessage("Please enter the cardholder name.");
+      const cleanedCardNumber = cardNumber.replace(/\s/g, "");
+
+      if (!cardName.trim() || cardName.trim().length < 3) {
+        setMessage("Please enter a valid cardholder name.");
         return false;
       }
-      if (!cardNumber.trim() || cardNumber.replace(/\s/g, "").length < 12) {
-        setMessage("Please enter a valid card number.");
+
+      if (!/^\d{12,19}$/.test(cleanedCardNumber)) {
+        setMessage("Card number must contain 12 to 19 digits.");
         return false;
       }
-      if (!expiryDate.trim()) {
-        setMessage("Please enter the card expiry date.");
+
+      if (!/^\d{2}\/\d{2}$/.test(expiryDate.trim())) {
+        setMessage("Expiry date must be in MM/YY format.");
         return false;
       }
-      if (!cvv.trim() || cvv.length < 3) {
-        setMessage("Please enter a valid CVV.");
+
+      if (!/^\d{3,4}$/.test(cvv.trim())) {
+        setMessage("CVV must be 3 or 4 digits.");
         return false;
       }
     }
 
     if (paymentMethod === "transfer") {
-      if (!bankName.trim()) {
-        setMessage("Please enter the bank name.");
+      if (!bankName.trim() || bankName.trim().length < 2) {
+        setMessage("Please enter a valid bank name.");
         return false;
       }
-      if (!accountName.trim()) {
-        setMessage("Please enter the account holder name.");
+
+      if (!accountName.trim() || accountName.trim().length < 3) {
+        setMessage("Please enter a valid account holder name.");
         return false;
       }
-      if (!transferReference.trim()) {
-        setMessage("Please enter the transfer reference number.");
+
+      if (!transferReference.trim() || transferReference.trim().length < 4) {
+        setMessage("Please enter a valid transfer reference number.");
         return false;
       }
     }
@@ -139,8 +146,8 @@ export default function PaymentsPage() {
     } catch (err: any) {
       setMessage(
         err?.data?.message ||
-          err?.message ||
-          "Payment failed. Please try again."
+        err?.message ||
+        "Payment failed. Please try again."
       );
     } finally {
       setPaying(false);
@@ -252,6 +259,15 @@ export default function PaymentsPage() {
                     setPaymentMethod(e.target.value as PaymentMethod);
                     setMessage("");
                     setCashReceipt("");
+
+                    setCardName("");
+                    setCardNumber("");
+                    setExpiryDate("");
+                    setCvv("");
+
+                    setBankName("");
+                    setAccountName("");
+                    setTransferReference("");
                   }}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
                 >
@@ -283,7 +299,9 @@ export default function PaymentsPage() {
                     <input
                       type="text"
                       value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value)}
+                      onChange={(e) =>
+                        setCardNumber(e.target.value.replace(/[^\d\s]/g, ""))
+                      }
                       placeholder="1234 5678 9012 3456"
                       className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
                     />
@@ -309,7 +327,7 @@ export default function PaymentsPage() {
                     <input
                       type="password"
                       value={cvv}
-                      onChange={(e) => setCvv(e.target.value)}
+                      onChange={(e) => setCvv(e.target.value.replace(/\D/g, ""))}
                       placeholder="123"
                       className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
                     />
@@ -352,7 +370,11 @@ export default function PaymentsPage() {
                     <input
                       type="text"
                       value={transferReference}
-                      onChange={(e) => setTransferReference(e.target.value)}
+                      onChange={(e) =>
+                        setTransferReference(
+                          e.target.value.replace(/[^a-zA-Z0-9\-\/\s]/g, "").replace(/\s+/g, " ").trimStart()
+                        )
+                      }
                       placeholder="Enter transfer reference"
                       className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
                     />
@@ -427,8 +449,8 @@ export default function PaymentsPage() {
                       payment.status === "paid"
                         ? "bg-green-100 text-green-800"
                         : payment.status === "pending"
-                        ? "bg-amber-100 text-amber-800"
-                        : "bg-red-100 text-red-800"
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-red-100 text-red-800"
                     }
                   >
                     {payment.status}

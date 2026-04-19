@@ -81,17 +81,14 @@ export default function AdminPaymentsPage() {
   }
 
   const filtered = payments.filter((p) => {
-    const ref = p.reference_no?.toLowerCase() ?? "";
-    const method = p.method?.toLowerCase() ?? "";
-    const status = p.status?.toLowerCase() ?? "";
-    const planName = p.membership?.plan?.name?.toLowerCase() ?? "";
     const term = search.toLowerCase();
-
     return (
-      ref.includes(term) ||
-      method.includes(term) ||
-      status.includes(term) ||
-      planName.includes(term)
+      (p.reference_no ?? "").toLowerCase().includes(term) ||
+      (p.method ?? "").toLowerCase().includes(term) ||
+      (p.status ?? "").toLowerCase().includes(term) ||
+      (p.membership?.plan?.name ?? "").toLowerCase().includes(term) ||
+      (p.user?.name ?? "").toLowerCase().includes(term) ||
+      (p.user?.email ?? "").toLowerCase().includes(term)
     );
   });
 
@@ -181,7 +178,7 @@ export default function AdminPaymentsPage() {
           <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
             <Search className="h-4 w-4 text-slate-400" />
             <Input
-              placeholder="Search by reference, plan, method, or status..."
+              placeholder="Search by reference, user, email, plan, method, or status..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-9 border-0 p-0 shadow-none focus-visible:ring-0"
@@ -203,6 +200,7 @@ export default function AdminPaymentsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Reference</TableHead>
+                  <TableHead>User</TableHead>
                   <TableHead>Plan</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Method</TableHead>
@@ -220,6 +218,16 @@ export default function AdminPaymentsPage() {
                     <TableRow key={payment.id}>
                       <TableCell className="font-medium text-slate-900">
                         {payment.reference_no}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-slate-900">
+                            {payment.user?.name ?? "-"}
+                          </span>
+                          <span className="text-sm text-slate-500">
+                            {payment.user?.email ?? "-"}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="text-slate-500">
                         {payment.membership?.plan?.name ?? "-"}

@@ -21,6 +21,12 @@ export interface Membership {
   plan?: MembershipPlan;
 }
 
+export interface PaymentUser {
+  id: number;
+  name: string;
+  email: string;
+}
+
 export interface Payment {
   id: number;
   membership_id: number;
@@ -31,6 +37,7 @@ export interface Payment {
   paid_at: string;
   reference_no: string;
   membership?: Membership;
+  user?: PaymentUser;
 }
 
 export interface SubscriptionStatus {
@@ -38,8 +45,6 @@ export interface SubscriptionStatus {
   membership: Membership | null;
 }
 
-// --- API Calls ---
-const BASE = "/api/auth";
 
 export const membershipApi = {
   // Get all active plans (for members to browse)
