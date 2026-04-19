@@ -30,6 +30,16 @@ export default function PaymentsPage() {
   const [accountName, setAccountName] = useState("");
   const [transferReference, setTransferReference] = useState("");
 
+  const [fieldErrors, setFieldErrors] = useState({
+    cardName: "",
+    cardNumber: "",
+    expiryDate: "",
+    cvv: "",
+    bankName: "",
+    accountName: "",
+    transferReference: "",
+  });
+
   const selectedPlan = useMemo(() => {
     if (!planIdParam) return null;
     const planId = Number(planIdParam);
@@ -59,49 +69,66 @@ export default function PaymentsPage() {
     }
   }
 
+  function clearFieldErrors() {
+    setFieldErrors({
+      cardName: "",
+      cardNumber: "",
+      expiryDate: "",
+      cvv: "",
+      bankName: "",
+      accountName: "",
+      transferReference: "",
+    });
+  }
+
   function validatePaymentDetails(): boolean {
+    const errors = {
+      cardName: "",
+      cardNumber: "",
+      expiryDate: "",
+      cvv: "",
+      bankName: "",
+      accountName: "",
+      transferReference: "",
+    };
+
     if (paymentMethod === "card_mock") {
       const cleanedCardNumber = cardNumber.replace(/\s/g, "");
 
       if (!cardName.trim() || cardName.trim().length < 3) {
-        setMessage("Please enter a valid cardholder name.");
-        return false;
+        errors.cardName = "Please enter a valid cardholder name.";
       }
 
       if (!/^\d{12,19}$/.test(cleanedCardNumber)) {
-        setMessage("Card number must contain 12 to 19 digits.");
-        return false;
+        errors.cardNumber = "Card number must contain 12 to 19 digits.";
       }
 
       if (!/^\d{2}\/\d{2}$/.test(expiryDate.trim())) {
-        setMessage("Expiry date must be in MM/YY format.");
-        return false;
+        errors.expiryDate = "Expiry date must be in MM/YY format.";
       }
 
       if (!/^\d{3,4}$/.test(cvv.trim())) {
-        setMessage("CVV must be 3 or 4 digits.");
-        return false;
+        errors.cvv = "CVV must be 3 or 4 digits.";
       }
     }
 
     if (paymentMethod === "transfer") {
       if (!bankName.trim() || bankName.trim().length < 2) {
-        setMessage("Please enter a valid bank name.");
-        return false;
+        errors.bankName = "Please enter a valid bank name.";
       }
 
       if (!accountName.trim() || accountName.trim().length < 3) {
-        setMessage("Please enter a valid account holder name.");
-        return false;
+        errors.accountName = "Please enter a valid account holder name.";
       }
 
       if (!transferReference.trim() || transferReference.trim().length < 4) {
-        setMessage("Please enter a valid transfer reference number.");
-        return false;
+        errors.transferReference = "Please enter a valid transfer reference number.";
       }
     }
 
-    return true;
+    setFieldErrors(errors);
+
+    return !Object.values(errors).some(Boolean);
   }
 
   async function handlePayNow() {
@@ -109,6 +136,8 @@ export default function PaymentsPage() {
       setMessage("Selected plan not found.");
       return;
     }
+
+    clearFieldErrors();
 
     if (!validatePaymentDetails()) {
       return;
@@ -146,8 +175,8 @@ export default function PaymentsPage() {
     } catch (err: any) {
       setMessage(
         err?.data?.message ||
-        err?.message ||
-        "Payment failed. Please try again."
+          err?.message ||
+          "Payment failed. Please try again."
       );
     } finally {
       setPaying(false);
@@ -268,6 +297,8 @@ export default function PaymentsPage() {
                     setBankName("");
                     setAccountName("");
                     setTransferReference("");
+
+                    clearFieldErrors();
                   }}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
                 >
@@ -286,10 +317,16 @@ export default function PaymentsPage() {
                     <input
                       type="text"
                       value={cardName}
-                      onChange={(e) => setCardName(e.target.value)}
+                      onChange={(e) => {
+                        setCardName(e.target.value);
+                        setFieldErrors((prev) => ({ ...prev, cardName: "" }));
+                      }}
                       placeholder="Enter cardholder name"
                       className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
                     />
+                    {fieldErrors.cardName && (
+                      <p className="mt-1 text-xs text-red-600">{fieldErrors.cardName}</p>
+                    )}
                   </div>
 
                   <div className="md:col-span-2">
@@ -299,12 +336,16 @@ export default function PaymentsPage() {
                     <input
                       type="text"
                       value={cardNumber}
-                      onChange={(e) =>
-                        setCardNumber(e.target.value.replace(/[^\d\s]/g, ""))
-                      }
+                      onChange={(e) => {
+                        setCardNumber(e.target.value.replace(/[^\d\s]/g, ""));
+                        setFieldErrors((prev) => ({ ...prev, cardNumber: "" }));
+                      }}
                       placeholder="1234 5678 9012 3456"
                       className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
                     />
+                    {fieldErrors.cardNumber && (
+                      <p className="mt-1 text-xs text-red-600">{fieldErrors.cardNumber}</p>
+                    )}
                   </div>
 
                   <div>
@@ -314,10 +355,16 @@ export default function PaymentsPage() {
                     <input
                       type="text"
                       value={expiryDate}
-                      onChange={(e) => setExpiryDate(e.target.value)}
+                      onChange={(e) => {
+                        setExpiryDate(e.target.value);
+                        setFieldErrors((prev) => ({ ...prev, expiryDate: "" }));
+                      }}
                       placeholder="MM/YY"
                       className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
                     />
+                    {fieldErrors.expiryDate && (
+                      <p className="mt-1 text-xs text-red-600">{fieldErrors.expiryDate}</p>
+                    )}
                   </div>
 
                   <div>
@@ -327,10 +374,16 @@ export default function PaymentsPage() {
                     <input
                       type="password"
                       value={cvv}
-                      onChange={(e) => setCvv(e.target.value.replace(/\D/g, ""))}
+                      onChange={(e) => {
+                        setCvv(e.target.value.replace(/\D/g, ""));
+                        setFieldErrors((prev) => ({ ...prev, cvv: "" }));
+                      }}
                       placeholder="123"
                       className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
                     />
+                    {fieldErrors.cvv && (
+                      <p className="mt-1 text-xs text-red-600">{fieldErrors.cvv}</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -344,10 +397,16 @@ export default function PaymentsPage() {
                     <input
                       type="text"
                       value={bankName}
-                      onChange={(e) => setBankName(e.target.value)}
+                      onChange={(e) => {
+                        setBankName(e.target.value);
+                        setFieldErrors((prev) => ({ ...prev, bankName: "" }));
+                      }}
                       placeholder="Enter bank name"
                       className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
                     />
+                    {fieldErrors.bankName && (
+                      <p className="mt-1 text-xs text-red-600">{fieldErrors.bankName}</p>
+                    )}
                   </div>
 
                   <div>
@@ -357,10 +416,16 @@ export default function PaymentsPage() {
                     <input
                       type="text"
                       value={accountName}
-                      onChange={(e) => setAccountName(e.target.value)}
+                      onChange={(e) => {
+                        setAccountName(e.target.value);
+                        setFieldErrors((prev) => ({ ...prev, accountName: "" }));
+                      }}
                       placeholder="Enter account holder name"
                       className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
                     />
+                    {fieldErrors.accountName && (
+                      <p className="mt-1 text-xs text-red-600">{fieldErrors.accountName}</p>
+                    )}
                   </div>
 
                   <div className="md:col-span-2">
@@ -370,14 +435,21 @@ export default function PaymentsPage() {
                     <input
                       type="text"
                       value={transferReference}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setTransferReference(
-                          e.target.value.replace(/[^a-zA-Z0-9\-\/\s]/g, "").replace(/\s+/g, " ").trimStart()
-                        )
-                      }
+                          e.target.value
+                            .replace(/[^a-zA-Z0-9\-\/\s]/g, "")
+                            .replace(/\s+/g, " ")
+                            .trimStart()
+                        );
+                        setFieldErrors((prev) => ({ ...prev, transferReference: "" }));
+                      }}
                       placeholder="Enter transfer reference"
                       className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
                     />
+                    {fieldErrors.transferReference && (
+                      <p className="mt-1 text-xs text-red-600">{fieldErrors.transferReference}</p>
+                    )}
                   </div>
                 </div>
               )}
