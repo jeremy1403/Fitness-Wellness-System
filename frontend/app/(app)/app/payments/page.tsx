@@ -20,6 +20,7 @@ export default function PaymentsPage() {
   const [message, setMessage] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card_mock");
   const [cashReceipt, setCashReceipt] = useState<string>("");
+  const [hasBlockingMembership, setHasBlockingMembership] = useState(false);
 
   const [cardName, setCardName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
@@ -55,13 +56,20 @@ export default function PaymentsPage() {
 
   async function fetchData() {
     try {
-      const [paymentsRes, plansRes] = await Promise.all([
+      const [paymentsRes, plansRes, membershipRes, historyRes] = await Promise.all([
         membershipApi.myPayments(),
         membershipApi.getPlans(),
+        membershipApi.myMembership(),
+        membershipApi.myHistory(),
       ]);
 
       setPayments(paymentsRes.data);
       setPlans(plansRes.data);
+
+      const activeMembership = membershipRes.data;
+      const pendingMembership = historyRes.data.find((m) => m.status === "pending");
+
+      setHasBlockingMembership(!!activeMembership || !!pendingMembership);
     } catch {
       setMessage("Failed to load payment data.");
     } finally {
@@ -138,6 +146,13 @@ export default function PaymentsPage() {
       return;
     }
 
+    if (hasBlockingMembership) {
+      setMessage(
+        "You already have an active or pending membership. Please wait until it is approved, cancelled, or expired before choosing another package."
+      );
+      return;
+    }
+
     clearFieldErrors();
 
     if (!validatePaymentDetails()) {
@@ -204,6 +219,12 @@ export default function PaymentsPage() {
       {message && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {message}
+        </div>
+      )}
+
+      {hasBlockingMembership && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          You already have an active or pending membership. You cannot choose another package right now.
         </div>
       )}
 
@@ -466,7 +487,7 @@ export default function PaymentsPage() {
               )}
 
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button onClick={handlePayNow} disabled={paying}>
+                <Button onClick={handlePayNow} disabled={paying || hasBlockingMembership}>
                   {paying ? "Processing..." : `Pay Now (RM ${selectedPlan.price})`}
                 </Button>
 
