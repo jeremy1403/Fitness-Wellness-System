@@ -19,4 +19,13 @@ class RegisterUserData
             role: $data['role'] ?? 'member',
         );
     }
+
+    public function toArray(): array
+    {
+        return [
+            'name' => $this->name,
+            'email' => $this->email,
+            'password' => $this->password,
+        ];
+    }
 }

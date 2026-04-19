@@ -112,6 +112,14 @@ class AuthService
 
     public function requestPasswordReset(ForgotPasswordData $data): string
     {
+        $user = $this->userRepository->findByEmail($data->email);
+
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'email' => ['No account found with that email address.'],
+            ]);
+        }
+
         $status = Password::broker()->sendResetLink(['email' => $data->email]);
 
         AppLogger::info('auth', 'Password reset requested', [
