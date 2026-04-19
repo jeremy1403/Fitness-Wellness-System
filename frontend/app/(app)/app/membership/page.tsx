@@ -36,11 +36,18 @@ export default function MembershipPage() {
       setHistoryMemberships(historyRes.data);
 
       const activeMembership = membershipRes.data;
+
       if (activeMembership) {
         setCurrentMembership(activeMembership);
       } else {
         const pendingMembership =
-          historyRes.data.find((m) => m.status === "pending") ?? null;
+          [...historyRes.data]
+            .filter((m) => m.status === "pending")
+            .sort(
+              (a, b) =>
+                new Date(b.start_date).getTime() - new Date(a.start_date).getTime()
+            )[0] ?? null;
+
         setCurrentMembership(pendingMembership);
       }
     } catch {
