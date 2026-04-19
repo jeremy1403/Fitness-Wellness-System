@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import SidebarShell from "@/components/layout/SidebarShell";
+import { useRoleGuard } from "@/hooks/use-role-guard";
 import { adminNav } from "@/lib/navigation";
 
 export default function AdminLayout({
@@ -9,6 +10,8 @@ export default function AdminLayout({
 }: {
   children: ReactNode;
 }) {
+  useRoleGuard("admin");
+
   return (
     <SidebarShell
       title="Admin System"

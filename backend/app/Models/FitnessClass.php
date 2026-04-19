@@ -16,7 +16,10 @@ class FitnessClass extends Model
         'title',
         'description',
         'duration_minutes',
+        'capacity',
+        'setup_mode',
         'status',
+        'created_by'
     ];
 
     protected $casts = [

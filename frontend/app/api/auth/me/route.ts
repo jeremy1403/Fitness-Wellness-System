@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { backendJson } from "@/app/api/auth/_helpers";
+import { backendJson, setAuthCookies } from "@/app/api/auth/_helpers";
 import { TOKEN_COOKIE } from "@/lib/auth/cookies";
+import { resolvePrimaryRole } from "@/lib/auth/role";
 import type { UserResponse } from "@/types/auth";
 
 export async function GET(request: NextRequest) {
@@ -17,8 +18,15 @@ export async function GET(request: NextRequest) {
     headers: { Authorization: `Bearer ${token}` },
   });
 
-  return NextResponse.json(
+  const response = NextResponse.json(
     data ?? { message: `Request failed (${res.status})` },
     { status: res.status },
   );
+
+  if (res.ok && data?.data) {
+    const role = resolvePrimaryRole(data.data.roles) ?? "member";
+    setAuthCookies(response, token, role);
+  }
+
+  return response;
 }

@@ -29,6 +29,29 @@ services:
       - fw-network
 
   # ----------------------------------------------------------------------------
+  # Laravel Queue Worker (Redis-backed)
+  # ----------------------------------------------------------------------------
+  queue-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: fw-queue
+    restart: unless-stopped
+    env_file: ./backend/.env
+    command: php artisan queue:work --tries=3 --backoff=5 --sleep=3 --timeout=60
+    volumes:
+      - ./backend:/var/www/html
+      - vendor_data:/var/www/html/vendor
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - fw-network
+
+  # ----------------------------------------------------------------------------
   # Next.js Frontend
   # ----------------------------------------------------------------------------
   frontend:

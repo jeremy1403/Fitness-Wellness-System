@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\TrainerResource;
 use App\Http\Resources\UserResource;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
@@ -20,6 +21,15 @@ class UserController extends Controller
 
         return response()->json([
             'data' => UserResource::collection($users),
+        ]);
+    }
+
+    public function trainers(): JsonResponse
+    {
+        $trainers = $this->userService->getAllActiveTrainers();
+
+        return response()->json([
+            'data' => TrainerResource::collection($trainers),
         ]);
     }
 
@@ -75,6 +85,8 @@ class UserController extends Controller
             return response()->json(['message' => 'User not found.'], 404);
         }
 
+        $this->authorize('assignRole', $user);
+
         $this->userService->assignRole($user, $request->input('role'));
 
         return response()->json([
@@ -94,6 +106,8 @@ class UserController extends Controller
         if (! $user) {
             return response()->json(['message' => 'User not found.'], 404);
         }
+
+        $this->authorize('removeRole', $user);
 
         $this->userService->removeRole($user, $request->input('role'));
 

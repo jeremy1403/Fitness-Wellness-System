@@ -15,6 +15,7 @@ return new class extends Migration
             $table->unsignedInteger('duration_minutes');
             $table->string('status', 20)->default('active');
             $table->timestamps();
+            $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
         });
     }
 

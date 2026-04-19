@@ -7,7 +7,6 @@ class UpdateProfileData
     public function __construct(
         public readonly ?string $name = null,
         public readonly ?string $email = null,
-        public readonly ?string $password = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -15,7 +14,6 @@ class UpdateProfileData
         return new self(
             name: $data['name'] ?? null,
             email: $data['email'] ?? null,
-            password: $data['password'] ?? null,
         );
     }
 
@@ -24,7 +22,6 @@ class UpdateProfileData
         return array_filter([
             'name' => $this->name,
             'email' => $this->email,
-            'password' => $this->password,
         ], fn ($value) => $value !== null);
     }
 }

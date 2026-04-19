@@ -10,3 +10,5 @@ export const appConfig = {
     version: "v1",
   },
 } as const;
+
+export const DEFAULT_ADMIN_ID = 1 as const;

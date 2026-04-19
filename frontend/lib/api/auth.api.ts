@@ -1,9 +1,11 @@
 import { http } from "./http";
 import type {
   AuthResponse,
+  ForgotPasswordPayload,
   LoginPayload,
   MessageResponse,
   RegisterPayload,
+  ResetPasswordPayload,
   UpdateProfilePayload,
   UserResponse,
 } from "@/types/auth";
@@ -46,5 +48,21 @@ export const authApi = {
       `${BASE}/profile`,
       { method: "PUT", body: payload, baseUrl: AUTH_BASE_URL },
     );
+  },
+
+  forgotPassword(payload: ForgotPasswordPayload) {
+    return http<MessageResponse>(`${BASE}/forgot-password`, {
+      method: "POST",
+      body: payload,
+      baseUrl: AUTH_BASE_URL,
+    });
+  },
+
+  resetPassword(payload: ResetPasswordPayload) {
+    return http<MessageResponse>(`${BASE}/reset-password`, {
+      method: "POST",
+      body: payload,
+      baseUrl: AUTH_BASE_URL,
+    });
   },
 };
