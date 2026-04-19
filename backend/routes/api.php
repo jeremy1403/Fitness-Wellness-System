@@ -60,7 +60,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // Module 4: Memberships & Payments
-    // Route::prefix('memberships')->group(base_path('routes/api/memberships.php'));
+    Route::prefix('memberships')->group(base_path('routes/api/memberships.php'));
 
     // Health check (includes DB connectivity)
     Route::get('/health', function () {

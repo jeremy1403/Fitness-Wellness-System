@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Payment;
+use App\Observers\PaymentObserver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\ServiceProvider;
 
@@ -21,6 +23,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureModels();
+
+        // Register the PaymentObserver
+        // Every time a Payment is created, this fires automatically
+        Payment::observe(PaymentObserver::class);
     }
 
     /**
