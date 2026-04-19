@@ -22,23 +22,26 @@ Route::prefix('v1')->group(function () {
     // Module 1: Auth & User Management
     Route::prefix('auth')->group(base_path('routes/api/auth.php'));
 
-    // Module 2: Fitness Classes & Schedules
-    Route::apiResource('classes', FitnessClassController::class);
-    Route::get('schedules', [ClassScheduleController::class, 'index'])
-        ->middleware(['provider:getAllSchedules', 'consumer'])
-        ->name('schedules.index');
-    Route::apiResource('schedules', ClassScheduleController::class)
-        ->except(['index']);
+    Route::middleware('throttle:60,1')->group(function () {
+        Route::apiResource('classes', FitnessClassController::class);
+        Route::get('schedules', [ClassScheduleController::class, 'index'])
+            ->middleware(['provider:getAllSchedules', 'consumer'])
+            ->name('schedules.index');
 
-    Route::get('trainers', function () {
-        return \App\Models\Trainer::with('user')
-            ->where('status', 'active')
-            ->get()
-            ->map(fn($t) => [
-                'id'        => $t->id,
-                'name'      => $t->user?->name ?? '',
-                'specialty' => $t->specialty,
-            ]);
+        Route::apiResource('schedules', ClassScheduleController::class)
+            ->except(['index']);
+
+        Route::get('trainers', function () {
+            return \App\Models\Trainer::with('user')
+                ->where('status', 'active')
+                ->get()
+                ->map(fn($t) => [
+                    'id'        => $t->id,
+                    'name'      => $t->user?->name ?? '',
+                    'specialty' => $t->specialty,
+                ]);
+        });
+
     });
 
     // Module 3: Bookings — Member routes

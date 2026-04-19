@@ -64,12 +64,16 @@ class FitnessClassService
         });
     }
 
-    public function updateClass(int $id, array $data): FitnessClass
+    public function updateClass(int $id, array $data, int $currentUserId): FitnessClass
     {
         $fitnessClass = $this->repository->findById($id);
 
-        if (! $fitnessClass) {
+        if (!$fitnessClass) {
             throw new \Exception('Fitness class not found');
+        }
+
+        if ($currentUserId !== 1 && $fitnessClass->created_by !== $currentUserId) {
+            throw new \Exception('Unauthorized access');
         }
 
         return $this->repository->update($fitnessClass, $data);
@@ -79,10 +83,16 @@ class FitnessClassService
     {
         $fitnessClass = $this->repository->findById($id);
 
-        if (! $fitnessClass) {
+        if (!$fitnessClass) {
             return false;
         }
 
+        $user = Auth::user();
+        if ($user && $user->role !== 1 && $fitnessClass->created_by !== $user->id) {
+            throw new \Illuminate\Auth\Access\AuthorizationException(
+                'You are not authorized to delete this fitness class.'
+            );
+        }
         return $this->repository->delete($fitnessClass);
     }
 }
