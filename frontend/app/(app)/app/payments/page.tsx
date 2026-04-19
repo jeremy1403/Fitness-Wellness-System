@@ -514,48 +514,52 @@ export default function PaymentsPage() {
           </p>
         </div>
 
-        {payments.length === 0 ? (
+        {payments.filter((payment) => payment.status !== "cancelled").length === 0 ? (
           <div className="rounded-3xl border border-slate-200 bg-white p-6 text-center">
             <p className="text-slate-500">No payments found.</p>
           </div>
         ) : (
-          payments.map((payment) => (
-            <Card key={payment.id} className="p-6">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="font-semibold text-slate-900">
-                    {payment.membership?.plan?.name ?? "Membership Payment"}
-                  </p>
-                  <p className="text-sm text-slate-500">
-                    Ref: {payment.reference_no}
-                  </p>
-                  <p className="text-sm text-slate-500">
-                    Date: {payment.paid_at ? new Date(payment.paid_at).toLocaleDateString() : "-"}
-                  </p>
-                  <p className="text-sm text-slate-500">
-                    Method: {payment.method}
-                  </p>
-                </div>
+          payments
+            .filter((payment) => payment.status !== "cancelled")
+            .map((payment) => (
+              <Card key={payment.id} className="p-6">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-semibold text-slate-900">
+                      {payment.membership?.plan?.name ?? "Membership Payment"}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      Ref: {payment.reference_no}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      Date: {payment.paid_at ? new Date(payment.paid_at).toLocaleDateString() : "-"}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      Method: {payment.method}
+                    </p>
+                  </div>
 
-                <div className="flex flex-col items-end gap-2">
-                  <p className="text-xl font-bold text-slate-900">
-                    RM {payment.amount}
-                  </p>
-                  <Badge
-                    className={
-                      payment.status === "paid"
-                        ? "bg-green-100 text-green-800"
-                        : payment.status === "pending"
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-red-100 text-red-800"
-                    }
-                  >
-                    {payment.status}
-                  </Badge>
+                  <div className="flex flex-col items-end gap-2">
+                    <p className="text-xl font-bold text-slate-900">
+                      RM {payment.amount}
+                    </p>
+                    <Badge
+                      className={
+                        payment.status === "paid"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : payment.status === "pending"
+                            ? "bg-amber-50 text-amber-700"
+                            : payment.status === "cancelled"
+                              ? "bg-slate-100 text-slate-700"
+                              : "bg-red-50 text-red-700"
+                      }
+                    >
+                      {payment.status}
+                    </Badge>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          ))
+              </Card>
+            ))
         )}
       </div>
     </div>

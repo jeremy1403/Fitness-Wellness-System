@@ -105,16 +105,39 @@ class MembershipService
         if (!$membership) {
             throw new \Exception('Membership not found.');
         }
+
         if ($membership->user_id !== $userId) {
             throw new \Exception('Unauthorized.');
         }
+
         if (!in_array($membership->status, ['active', 'pending'])) {
             throw new \Exception('Only active or pending memberships can be cancelled.');
         }
 
-        return $this->membershipRepository->update($membership, [
-            'status' => 'cancelled',
-        ]);
+        return DB::transaction(function () use ($membership) {
+            $updatedMembership = $this->membershipRepository->update($membership, [
+                'status' => 'cancelled',
+            ]);
+
+            $pendingPayment = $membership->payments()
+                ->where('status', 'pending')
+                ->latest('id')
+                ->first();
+
+            if ($pendingPayment) {
+                $pendingPayment->update([
+                    'status' => 'cancelled',
+                ]);
+            }
+
+            AppLogger::info('membership', 'Membership cancelled', [
+                'membership_id' => $membership->id,
+                'user_id' => $membership->user_id,
+                'cancelled_payment_id' => $pendingPayment?->id,
+            ]);
+
+            return $updatedMembership;
+        });
     }
 
     // Update subscription status (admin use)
