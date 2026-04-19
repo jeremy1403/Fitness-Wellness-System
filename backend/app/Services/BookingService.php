@@ -35,10 +35,10 @@ class BookingService
         }
 
         return $this->bookingRepository->create([
-            'user_id' => $user->id,
+            'user_id'           => $user->id,
             'class_schedule_id' => $scheduleId,
-            'status' => 'booked',
-            'booked_at' => now(),
+            'status'            => 'booked',
+            'booked_at'         => now(),
         ]);
     }
 
@@ -55,13 +55,65 @@ class BookingService
             throw new Exception('Booking not found.');
         }
 
-        if ($booking->isCancelled()) {
-            throw new Exception('Booking already cancelled.');
-        }
+        // State Pattern: delegate transition validation to the current state
+        $newStatus = $booking->getState()->cancel();
 
         return $this->bookingRepository->update($booking, [
-            'status' => 'cancelled',
+            'status'       => $newStatus,
             'cancelled_at' => now(),
         ]);
+    }
+
+    public function getAllBookings(): Collection
+    {
+        return $this->bookingRepository->findAll();
+    }
+
+    public function adminCancelBooking(int $bookingId): Booking
+    {
+        $booking = $this->bookingRepository->findById($bookingId);
+
+        if (!$booking) {
+            throw new Exception('Booking not found.');
+        }
+
+        // State Pattern: delegate transition validation to the current state
+        $newStatus = $booking->getState()->cancel();
+
+        return $this->bookingRepository->update($booking, [
+            'status'       => $newStatus,
+            'cancelled_at' => now(),
+        ]);
+    }
+
+    /**
+     * State Pattern: trainer marks a booking as attended or no_show.
+     * Transition rules are enforced by the current BookingState.
+     */
+    public function updateAttendance(int $bookingId, string $newStatus): Booking
+    {
+        $booking = $this->bookingRepository->findById($bookingId);
+
+        if (!$booking) {
+            throw new Exception('Booking not found.');
+        }
+
+        $resolvedStatus = match ($newStatus) {
+            'attended' => $booking->getState()->markAttended(),
+            'no_show'  => $booking->getState()->markNoShow(),
+            default    => throw new Exception("Invalid attendance status: {$newStatus}"),
+        };
+
+        return $this->bookingRepository->update($booking, [
+            'status' => $resolvedStatus,
+        ]);
+    }
+
+    /**
+     * Trainer: get all bookings for a specific schedule.
+     */
+    public function getScheduleBookings(int $scheduleId): Collection
+    {
+        return $this->bookingRepository->findBySchedule($scheduleId);
     }
 }

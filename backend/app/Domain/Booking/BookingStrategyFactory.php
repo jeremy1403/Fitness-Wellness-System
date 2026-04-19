@@ -16,7 +16,7 @@ class BookingStrategyFactory
     ): BookingPolicyInterface {
         // Temporary rule until Membership module is ready.
         // Replace later with real membership/plan lookup.
-        if ($user->email === 'admin@fitness.test') {
+        if ($user->email === 'jr@fitness.test') {
             return new PremiumBookingPolicy($bookingRepository);
         }
 

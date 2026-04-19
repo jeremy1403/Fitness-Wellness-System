@@ -1,11 +1,11 @@
 <?php
 
+use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\ClassScheduleController;
 use App\Http\Controllers\Api\FitnessClassController;
 use App\Http\Controllers\Api\PromoCodeController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\BookingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -30,13 +30,35 @@ Route::prefix('v1')->group(function () {
     Route::apiResource('schedules', ClassScheduleController::class)
         ->except(['index']);
 
-    // Module 3: Bookings
+    Route::get('trainers', function () {
+        return \App\Models\Trainer::with('user')
+            ->where('status', 'active')
+            ->get()
+            ->map(fn($t) => [
+                'id'        => $t->id,
+                'name'      => $t->user?->name ?? '',
+                'specialty' => $t->specialty,
+            ]);
+    });
+
+    // Module 3: Bookings — Member routes
     Route::middleware('auth:sanctum')->prefix('bookings')->group(function () {
         Route::post('/', [BookingController::class, 'store']);
         Route::get('/history', [BookingController::class, 'history']);
         Route::post('/{id}/cancel', [BookingController::class, 'cancel']);
+
+        // Trainer + Admin: mark attendance (State Pattern)
+        Route::patch('/{id}/attendance', [BookingController::class, 'updateAttendance']);
+
+        // Trainer: get bookings for a specific schedule
+        Route::get('/schedule/{scheduleId}', [BookingController::class, 'scheduleBookings']);
     });
-    // Route::prefix('bookings')->group(base_path('routes/api/bookings.php'));
+
+    // Module 3: Bookings — Admin routes
+    Route::middleware('auth:sanctum')->prefix('admin/bookings')->group(function () {
+        Route::get('/', [BookingController::class, 'index']);
+        Route::post('/{id}/cancel', [BookingController::class, 'adminCancel']);
+    });
 
     // Module 4: Memberships & Payments
     // Route::prefix('memberships')->group(base_path('routes/api/memberships.php'));
@@ -75,8 +97,8 @@ Route::prefix('v1')->group(function () {
         }
 
         return response()->json([
-            'status' => $dbOk ? 'ok' : 'degraded',
-            'database' => $dbOk,
+            'status'    => $dbOk ? 'ok' : 'degraded',
+            'database'  => $dbOk,
             'timestamp' => now()->toIso8601String(),
         ], $dbOk ? 200 : 503);
     });
