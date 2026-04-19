@@ -535,8 +535,11 @@ export function MemberPromosView({ user }: { user: User }) {
 
       {/* Promo Code Input */}
       <div className="max-w-md">
-        <p className="text-sm font-medium text-slate-700 mb-2">
-          🔒 Test Promo Validation &amp; Rate Limiting
+        <p className="text-sm font-medium text-slate-700 mb-1">
+          ⚡ Voucher Diagnostics
+        </p>
+        <p className="text-xs text-slate-400 mb-2">
+          Enter a code to preview its discount value before applying at checkout.
         </p>
         <PromoCodeInput userId={user.id} />
       </div>

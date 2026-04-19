@@ -5,13 +5,13 @@ import { X, Terminal, Wifi } from "lucide-react";
 
 // ── Trace lines definition ────────────────────────────────────────────────────
 const TRACE_LINES = [
-  { text: "[>_ SYSTEM TRACE INITIATED]",                                    color: "text-teal-300",   delay: 0   },
-  { text: "[SECURITY] Proxy Pattern: Validating Rate Limit (Attempt 1/5)... OK", color: "text-yellow-300", delay: 400 },
-  { text: "[CONSUME]  Web Service: Fetching Member 1 User Profile via Auth Token...", color: "text-sky-300",    delay: 800 },
-  { text: "[CONSUME]  Web Service: Extracted user.created_at (Account Age Verified)", color: "text-sky-300",    delay: 1300 },
-  { text: "[BUSINESS LOGIC] Validating constraints (Expiry, Limits)... OK", color: "text-purple-300", delay: 1800 },
-  { text: "[PROVIDE]  Web Service: Caching Promo Code for Member 4 Payment System.", color: "text-emerald-300", delay: 2300 },
-  { text: "[>_ PROXY RETURN: SUCCESS 200]",                                  color: "text-teal-300",   delay: 2800 },
+  { text: "[>_ CAMPAIGN SIMULATOR STARTED]",                                     color: "text-teal-300",   delay: 0   },
+  { text: "[PROTECTION]   Smart Protection Check: Simulating Customer Checkout (1/5)... OK", color: "text-yellow-300", delay: 400 },
+  { text: "[PERSONALIZING] Fetching your account profile to tailor offers...",    color: "text-sky-300",    delay: 800 },
+  { text: "[PERSONALIZING] Account age verified — new member perks applied.",     color: "text-sky-300",    delay: 1300 },
+  { text: "[VALIDATION]   Checking discount eligibility and campaign rules... OK",color: "text-purple-300", delay: 1800 },
+  { text: "[SAVING]       Locking in your discount for a seamless checkout.",     color: "text-emerald-300", delay: 2300 },
+  { text: "[>_ PREVIEW READY: Voucher Activated — 200 OK]",                       color: "text-teal-300",   delay: 2800 },
 ] as const;
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -76,7 +76,7 @@ export function XRayDebugger({ triggerCode, onClose }: XRayDebuggerProps) {
 
           <div className="flex items-center gap-2 text-xs font-semibold tracking-widest text-slate-400 uppercase">
             <Terminal className="h-3.5 w-3.5" />
-            Architecture X-Ray
+            Campaign Simulator
           </div>
 
           <button
@@ -94,7 +94,7 @@ export function XRayDebugger({ triggerCode, onClose }: XRayDebuggerProps) {
             className={`h-3 w-3 ${done ? "text-teal-400" : "text-yellow-400 animate-pulse"}`}
           />
           <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase">
-            {done ? "Trace complete — voucher active" : `Tracing: ${triggerCode}`}
+            {done ? "Preview complete — voucher is ready to use" : `Simulating checkout for: ${triggerCode}`}
           </span>
           {!done && (
             <span className="ml-auto flex gap-0.5">

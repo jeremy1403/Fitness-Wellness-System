@@ -155,19 +155,30 @@ class PromoCodeController extends Controller
 
     /**
      * Store a newly created promo code (Admin).
+     * Percentage discounts are logically capped at 100% (mathematical integrity).
+     * Fixed discounts allow a high ceiling of 999999.
      */
     public function store(Request $request)
     {
+        $isPercentage = $request->input('discount_type') === 'percentage';
+
         $validated = $request->validate([
             'code'             => 'required|string|max:32|unique:promo_codes,code',
-            'discount_amount'  => 'required|numeric|min:0.01|max:999999',
             'discount_type'    => 'required|in:fixed,percentage',
+            'discount_amount'  => [
+                'required', 'numeric', 'min:0.01',
+                $isPercentage ? 'max:100' : 'max:999999',
+            ],
             'max_discount_amount' => 'nullable|numeric|min:0',
             'is_new_user_only' => 'sometimes|boolean',
             'is_active'        => 'nullable|boolean',
             'max_uses'         => 'nullable|integer|min:1',
             'expires_at'       => 'nullable|date|after:today',
             'required_plan_id' => 'nullable|integer|exists:membership_plans,id',
+        ], [
+            'discount_amount.max' => $isPercentage
+                ? 'A percentage discount cannot exceed 100%.'
+                : 'Fixed discount amount is too large.',
         ]);
 
         $promoCode = $this->promoRepository->create($validated);
@@ -185,19 +196,32 @@ class PromoCodeController extends Controller
 
     /**
      * Update the specified promo code in storage.
+     * Resolves discount_type from the request or falls back to the existing record.
+     * Percentage discounts are logically capped at 100% (mathematical integrity).
      */
     public function update(Request $request, $id)
     {
+        // Determine effective type: use incoming value or fall back to the saved record
+        $existingType = $this->promoRepository->findById($id)->discount_type;
+        $isPercentage = ($request->input('discount_type', $existingType)) === 'percentage';
+
         $validated = $request->validate([
             'code'             => 'sometimes|string|max:32|unique:promo_codes,code,' . $id,
-            'discount_amount'  => 'sometimes|numeric|min:0.01|max:999999',
             'discount_type'    => 'sometimes|in:fixed,percentage',
+            'discount_amount'  => [
+                'sometimes', 'numeric', 'min:0.01',
+                $isPercentage ? 'max:100' : 'max:999999',
+            ],
             'max_discount_amount' => 'nullable|numeric|min:0',
             'is_new_user_only' => 'sometimes|boolean',
             'is_active'        => 'nullable|boolean',
             'max_uses'         => 'nullable|integer|min:1',
             'expires_at'       => 'nullable|date|after:today',
             'required_plan_id' => 'nullable|integer|exists:membership_plans,id',
+        ], [
+            'discount_amount.max' => $isPercentage
+                ? 'A percentage discount cannot exceed 100%.'
+                : 'Fixed discount amount is too large.',
         ]);
 
         $promoCode = $this->promoRepository->update($id, $validated);
