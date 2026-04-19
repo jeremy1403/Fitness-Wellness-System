@@ -24,10 +24,4 @@ interface BookingRepositoryInterface
     public function create(array $data): Booking;
 
     public function update(Booking $booking, array $data): Booking;
-<<<<<<< HEAD
-
-    public function countBookingsForSchedule(int $scheduleId): int;
 }
-=======
-}
->>>>>>> 2da4572 (feat(booking): implement booking module with State Pattern, attendance marking, admin oversight and BookingResource)

@@ -16,10 +16,7 @@ class BookingService
         private readonly BookingRepositoryInterface $bookingRepository
     ) {}
 
-<<<<<<< HEAD
     // 1. Prevent duplicate booking
-=======
->>>>>>> 2da4572 (feat(booking): implement booking module with State Pattern, attendance marking, admin oversight and BookingResource)
     public function createBooking(User $user, int $scheduleId): Booking
     {
         if ($this->bookingRepository->existsForSchedule($user->id, $scheduleId)) {
@@ -32,26 +29,16 @@ class BookingService
         $policy->canBook($user, $schedule);
 
         $currentBookings = $this->bookingRepository->countBookingsForSchedule($scheduleId);
-<<<<<<< HEAD
 
-=======
->>>>>>> 2da4572 (feat(booking): implement booking module with State Pattern, attendance marking, admin oversight and BookingResource)
         if ($currentBookings >= $schedule->capacity) {
             throw new Exception('This class is already full.');
         }
 
         return $this->bookingRepository->create([
-<<<<<<< HEAD
-            'user_id' => $user->id,
-            'class_schedule_id' => $scheduleId,
-            'status' => 'booked',
-            'booked_at' => now(),
-=======
             'user_id'           => $user->id,
             'class_schedule_id' => $scheduleId,
             'status'            => 'booked',
             'booked_at'         => now(),
->>>>>>> 2da4572 (feat(booking): implement booking module with State Pattern, attendance marking, admin oversight and BookingResource)
         ]);
     }
 
@@ -68,17 +55,6 @@ class BookingService
             throw new Exception('Booking not found.');
         }
 
-<<<<<<< HEAD
-        if ($booking->isCancelled()) {
-            throw new Exception('Booking already cancelled.');
-        }
-
-        return $this->bookingRepository->update($booking, [
-            'status' => 'cancelled',
-            'cancelled_at' => now(),
-        ]);
-    }
-=======
         // State Pattern: delegate transition validation to the current state
         $newStatus = $booking->getState()->cancel();
 
@@ -140,5 +116,4 @@ class BookingService
     {
         return $this->bookingRepository->findBySchedule($scheduleId);
     }
->>>>>>> 2da4572 (feat(booking): implement booking module with State Pattern, attendance marking, admin oversight and BookingResource)
 }

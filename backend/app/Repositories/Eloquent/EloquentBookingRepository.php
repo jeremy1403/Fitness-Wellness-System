@@ -50,8 +50,6 @@ class EloquentBookingRepository implements BookingRepositoryInterface
             ->whereHas('classSchedule', function ($query) use ($date) {
                 $query->whereDate('start_datetime', $date);
             })
-<<<<<<< HEAD
-=======
             ->count();
     }
 
@@ -59,7 +57,6 @@ class EloquentBookingRepository implements BookingRepositoryInterface
     {
         return Booking::where('class_schedule_id', $scheduleId)
             ->where('status', 'booked')
->>>>>>> 2da4572 (feat(booking): implement booking module with State Pattern, attendance marking, admin oversight and BookingResource)
             ->count();
     }
 
@@ -73,15 +70,4 @@ class EloquentBookingRepository implements BookingRepositoryInterface
         $booking->update($data);
         return $booking->fresh();
     }
-<<<<<<< HEAD
-
-    public function countBookingsForSchedule(int $scheduleId): int
-    {
-        return Booking::where('class_schedule_id', $scheduleId)
-            ->where('status', 'booked')
-            ->count();
-    }
 }
-=======
-}
->>>>>>> 2da4572 (feat(booking): implement booking module with State Pattern, attendance marking, admin oversight and BookingResource)

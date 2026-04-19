@@ -24,18 +24,26 @@ function formatTime(iso: string) {
 }
 
 function StatusBadge({ status }: { status: Booking["status"] }) {
-  const styles =
-    status === "booked"
-      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-      : "bg-slate-100 text-slate-500 border-slate-200";
+  const styles: Record<string, string> = {
+    booked:    "bg-emerald-50 text-emerald-700 border-emerald-200",
+    cancelled: "bg-slate-100 text-slate-500 border-slate-200",
+    attended:  "bg-blue-50 text-blue-700 border-blue-200",
+    no_show:   "bg-amber-50 text-amber-700 border-amber-200",
+  };
+
+  const dotStyles: Record<string, string> = {
+    booked:    "bg-emerald-500",
+    cancelled: "bg-slate-400",
+    attended:  "bg-blue-500",
+    no_show:   "bg-amber-500",
+  };
+
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${styles}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${styles[status] ?? styles.cancelled}`}
     >
-      <span
-        className={`h-1.5 w-1.5 rounded-full ${status === "booked" ? "bg-emerald-500" : "bg-slate-400"}`}
-      />
-      {status}
+      <span className={`h-1.5 w-1.5 rounded-full ${dotStyles[status] ?? dotStyles.cancelled}`} />
+      {status.replace("_", " ")}
     </span>
   );
 }

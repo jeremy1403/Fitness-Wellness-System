@@ -389,7 +389,10 @@ function SchedulesContent() {
     } catch (err) { alert("Delete failed."); }
   };
 
-<<<<<<< HEAD
+  const toggleExpand = (id: number) => {
+    setExpandedScheduleId((prev) => (prev === id ? null : id));
+  };
+
   // --- 重点：数据过滤与排序 ---
   const now = new Date().getTime();
   const displaySchedules = scheduleList
@@ -418,12 +421,6 @@ function SchedulesContent() {
     })
     .sort((a, b) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime()); // 按时间升序排序
 
-=======
-  const toggleExpand = (id: number) => {
-    setExpandedScheduleId((prev) => (prev === id ? null : id));
-  };
->>>>>>> 2da4572 (feat(booking): implement booking module with State Pattern, attendance marking, admin oversight and BookingResource)
-
   return (
     <div className="flex flex-col gap-6 max-w-6xl mx-auto p-4">
       {/* Global toast for attendance actions */}
@@ -442,11 +439,7 @@ function SchedulesContent() {
             {primaryRole === 'trainer' ? (editingId ? " Edit Schedule" : " Manage Schedules") : "Upcoming Sessions"}
           </h1>
           <p className="text-slate-500 text-sm mt-1">
-<<<<<<< HEAD
-            {primaryRole === 'trainer' ? "Assign classes to time slots." : filterClassId ? "Showing available times for selected class." : "Find a time that works and book your spot."}
-=======
-            {primaryRole === 'trainer' ? "Manage your sessions and mark attendance." : "Find a time that works and book your spot."}
->>>>>>> 2da4572 (feat(booking): implement booking module with State Pattern, attendance marking, admin oversight and BookingResource)
+            {primaryRole === 'trainer' ? "Manage your sessions and mark attendance." : filterClassId ? "Showing available times for selected class." : "Find a time that works and book your spot."}
           </p>
         </div>
         <Link href="/app/classes" className="text-sm font-medium text-slate-500 hover:text-slate-900 px-4 py-2 rounded-full bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-colors">
@@ -473,11 +466,7 @@ function SchedulesContent() {
                   }
                 </select>
               </label>
-<<<<<<< HEAD
-              
-=======
 
->>>>>>> 2da4572 (feat(booking): implement booking module with State Pattern, attendance marking, admin oversight and BookingResource)
               <label className="text-sm font-medium sm:col-span-2 text-slate-700">
                 Assign Trainer
                 <div className="mt-2 w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-slate-600 flex items-center justify-between">
@@ -538,7 +527,7 @@ function SchedulesContent() {
             <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             <p>No upcoming schedules found.</p>
             {filterClassId && (
-               <Link href="/app/classes" className="text-blue-600 text-sm mt-2 block hover:underline">View all other classes</Link>
+              <Link href="/app/classes" className="text-blue-600 text-sm mt-2 block hover:underline">View all other classes</Link>
             )}
           </div>
         ) : displaySchedules.map((item) => {
@@ -550,49 +539,7 @@ function SchedulesContent() {
             <div key={item.id} className="group relative rounded-3xl bg-white border border-slate-100 shadow-sm hover:border-blue-200 hover:shadow-md transition-all duration-300">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6">
 
-<<<<<<< HEAD
-              {/* Trainer CRUD button */}
-              {primaryRole === "trainer" && (
-                <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => startEdit(item)} className="p-2 bg-slate-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                  </button>
-                  <button onClick={() => handleDelete(item.id)} className="p-2 bg-slate-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                  </button>
-                </div>
-              )}
-
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg uppercase tracking-wider">
-                    {start.date}
-                  </span>
-                  <span className="text-sm font-medium text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg">
-                    {start.time} - {end.time}
-                  </span>
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 mt-2">{item.fitness_class?.title}</h3>
-                <div className="flex items-center gap-4 mt-2">
-                  <p className="text-sm text-slate-500">
-                    Trainer: <span className="font-semibold text-slate-700">
-                      {trainers.find(t => String(t.id) === String(item.trainer_id))?.name || 'TBA'}
-                    </span>
-                  </p>
-                  <p className="text-sm text-slate-500">Spots: <span className="font-semibold text-slate-700">{item.capacity}</span></p>
-                </div>
-              </div>
-
-              {/* 只有 Member 角色才能看到 Book Spot 按钮 */}
-              {primaryRole === 'member' && (
-                <button 
-                  onClick={() => alert(`Ready to book ${item.fitness_class?.title} at ${start.time}? \n(Booking API integration goes here)`)}
-                  className="mt-6 sm:mt-0 w-full sm:w-auto text-center rounded-2xl bg-slate-900 px-8 py-3.5 text-sm font-bold text-white hover:bg-indigo-600 transition-all shadow-md"
-                >
-                  Book Spot
-                </button>
-=======
-                {/* --- Trainer CRUD button --- */}
+                {/* Trainer CRUD button */}
                 {primaryRole === "trainer" && (
                   <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => startEdit(item)} className="p-2 bg-slate-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors">
@@ -606,15 +553,21 @@ function SchedulesContent() {
 
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg uppercase tracking-wider">
                       {start.date}
                     </span>
-                    <span className="text-xs font-medium text-slate-400">{start.time} - {end.time}</span>
+                    <span className="text-sm font-medium text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg">
+                      {start.time} - {end.time}
+                    </span>
                   </div>
-                  <h3 className="text-xl font-bold text-slate-900 mt-1">{item.fitness_class?.title}</h3>
-                  <div className="flex items-center gap-4 mt-1">
-                    <p className="text-xs text-slate-500">Trainer: <span className="font-semibold text-slate-700">{item.trainer?.name}</span></p>
-                    <p className="text-xs text-slate-500">Spots: <span className="font-semibold text-slate-700">{item.capacity}</span></p>
+                  <h3 className="text-xl font-bold text-slate-900 mt-2">{item.fitness_class?.title}</h3>
+                  <div className="flex items-center gap-4 mt-2">
+                    <p className="text-sm text-slate-500">
+                      Trainer: <span className="font-semibold text-slate-700">
+                        {trainers.find(t => String(t.id) === String(item.trainer_id))?.name || 'TBA'}
+                      </span>
+                    </p>
+                    <p className="text-sm text-slate-500">Spots: <span className="font-semibold text-slate-700">{item.capacity}</span></p>
                   </div>
                 </div>
 
@@ -648,7 +601,6 @@ function SchedulesContent() {
                     onToast={(message, type) => setToast({ message, type })}
                   />
                 </div>
->>>>>>> 2da4572 (feat(booking): implement booking module with State Pattern, attendance marking, admin oversight and BookingResource)
               )}
             </div>
           );
@@ -656,7 +608,6 @@ function SchedulesContent() {
       </div>
     </div>
   );
-<<<<<<< HEAD
 }
 
 // --- Next.js 页面入口：包装 Suspense 以支持 useSearchParams ---
@@ -666,6 +617,4 @@ export default function UserSchedulesPage() {
       <SchedulesContent />
     </Suspense>
   );
-=======
->>>>>>> 2da4572 (feat(booking): implement booking module with State Pattern, attendance marking, admin oversight and BookingResource)
 }
