@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Domain\Booking\BookingStateFactory;
+use App\Domain\Booking\States\BookingStateInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,7 +21,7 @@ class Booking extends Model
     ];
 
     protected $casts = [
-        'booked_at' => 'datetime',
+        'booked_at'    => 'datetime',
         'cancelled_at' => 'datetime',
     ];
 
@@ -36,5 +38,14 @@ class Booking extends Model
     public function isCancelled(): bool
     {
         return $this->status === 'cancelled';
+    }
+
+    /**
+     * Returns the current State object for this booking.
+     * Used by the State Pattern to validate and resolve transitions.
+     */
+    public function getState(): BookingStateInterface
+    {
+        return BookingStateFactory::make($this->status);
     }
 }
