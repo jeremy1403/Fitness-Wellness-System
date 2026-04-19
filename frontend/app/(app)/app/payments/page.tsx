@@ -121,8 +121,9 @@ export default function PaymentsPage() {
         errors.accountName = "Please enter a valid account holder name.";
       }
 
-      if (!transferReference.trim() || transferReference.trim().length < 4) {
-        errors.transferReference = "Please enter a valid transfer reference number.";
+      if (!/^[A-Za-z0-9\-\/]{6,20}$/.test(transferReference.trim())) {
+        errors.transferReference =
+          "Reference must be 6–20 characters (letters, numbers, - or / only).";
       }
     }
 
@@ -175,8 +176,8 @@ export default function PaymentsPage() {
     } catch (err: any) {
       setMessage(
         err?.data?.message ||
-          err?.message ||
-          "Payment failed. Please try again."
+        err?.message ||
+        "Payment failed. Please try again."
       );
     } finally {
       setPaying(false);
@@ -447,6 +448,9 @@ export default function PaymentsPage() {
                       placeholder="Enter transfer reference"
                       className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
                     />
+                    <p className="mt-1 text-xs text-slate-500">
+                      Example: TRX123456 or IBG-20260418
+                    </p>
                     {fieldErrors.transferReference && (
                       <p className="mt-1 text-xs text-red-600">{fieldErrors.transferReference}</p>
                     )}
