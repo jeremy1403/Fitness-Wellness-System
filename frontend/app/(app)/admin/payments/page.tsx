@@ -72,8 +72,8 @@ export default function AdminPaymentsPage() {
     } catch (err: any) {
       setActionError(
         err?.data?.message ||
-          err?.message ||
-          "Unable to mark payment as paid."
+        err?.message ||
+        "Unable to mark payment as paid."
       );
     } finally {
       setActionLoading(null);
@@ -244,8 +244,10 @@ export default function AdminPaymentsPage() {
                             payment.status === "paid"
                               ? "bg-emerald-50 text-emerald-700"
                               : payment.status === "pending"
-                              ? "bg-amber-50 text-amber-700"
-                              : "bg-red-50 text-red-700"
+                                ? "bg-amber-50 text-amber-700"
+                                : payment.status === "cancelled"
+                                  ? "bg-slate-100 text-slate-700"
+                                  : "bg-red-50 text-red-700"
                           }
                         >
                           {payment.status}
