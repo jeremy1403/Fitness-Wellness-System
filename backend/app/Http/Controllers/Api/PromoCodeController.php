@@ -159,12 +159,14 @@ class PromoCodeController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'code'             => 'required|string|unique:promo_codes,code',
-            'discount_amount'  => 'required|numeric',
-            'discount_type'    => 'nullable|string',
+            'code'             => 'required|string|max:32|unique:promo_codes,code',
+            'discount_amount'  => 'required|numeric|min:0.01|max:999999',
+            'discount_type'    => 'required|in:fixed,percentage',
+            'max_discount_amount' => 'nullable|numeric|min:0',
+            'is_new_user_only' => 'sometimes|boolean',
             'is_active'        => 'nullable|boolean',
-            'max_uses'         => 'nullable|integer',
-            'expires_at'       => 'nullable|date',
+            'max_uses'         => 'nullable|integer|min:1',
+            'expires_at'       => 'nullable|date|after:today',
             'required_plan_id' => 'nullable|integer|exists:membership_plans,id',
         ]);
 
@@ -187,12 +189,14 @@ class PromoCodeController extends Controller
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
-            'code'             => 'sometimes|string|unique:promo_codes,code,' . $id,
-            'discount_amount'  => 'sometimes|numeric',
-            'discount_type'    => 'nullable|string',
+            'code'             => 'sometimes|string|max:32|unique:promo_codes,code,' . $id,
+            'discount_amount'  => 'sometimes|numeric|min:0.01|max:999999',
+            'discount_type'    => 'sometimes|in:fixed,percentage',
+            'max_discount_amount' => 'nullable|numeric|min:0',
+            'is_new_user_only' => 'sometimes|boolean',
             'is_active'        => 'nullable|boolean',
-            'max_uses'         => 'nullable|integer',
-            'expires_at'       => 'nullable|date',
+            'max_uses'         => 'nullable|integer|min:1',
+            'expires_at'       => 'nullable|date|after:today',
             'required_plan_id' => 'nullable|integer|exists:membership_plans,id',
         ]);
 

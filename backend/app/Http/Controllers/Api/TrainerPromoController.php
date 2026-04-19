@@ -85,25 +85,46 @@ class TrainerPromoController extends Controller
     /**
      * POST /api/v1/trainer/promos
      * Trainer creates their own referral code — trainer_id auto-set.
+     *
+     * Trainer Constraints (Privilege Escalation Prevention):
+     *  - Percentage discount: max 20%
+     *  - Fixed discount: max RM 50
      */
     public function store(Request $request)
     {
         $trainer = $this->resolveTrainer($request);
 
         $validated = $request->validate([
-            'code'                => 'required|string|unique:promo_codes,code',
+            'code'                => 'required|string|unique:promo_codes,code|max:32',
             'discount_type'       => 'required|in:fixed,percentage',
-            'discount_amount'     => 'required|numeric|min:0',
+            'discount_amount'     => 'required|numeric|min:0.01',
             'max_discount_amount' => 'nullable|numeric|min:0',
             'max_uses'            => 'nullable|integer|min:1',
-            'expires_at'          => 'nullable|date',
+            'expires_at'          => 'nullable|date|after:today',
             'is_new_user_only'    => 'boolean',
+            'required_plan_id'    => 'nullable|integer|exists:membership_plans,id',
         ]);
 
-        $validated['trainer_id']   = $trainer->id;
-        $validated['is_active']    = true;
-        $validated['times_used']   = 0;
-        $validated['code']         = strtoupper($validated['code']);
+        // ── Trainer Discount Cap (Privilege Escalation Prevention) ────────────
+        $type   = $validated['discount_type'];
+        $amount = (float) $validated['discount_amount'];
+
+        if ($type === 'percentage' && $amount > 20) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'discount_amount' => ['Trainers can only offer up to 20% discount. Please enter a value between 0.01 and 20.'],
+            ]);
+        }
+
+        if ($type === 'fixed' && $amount > 50) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'discount_amount' => ['Trainers can only offer up to RM 50 fixed discount. Please enter a value between 0.01 and 50.'],
+            ]);
+        }
+
+        $validated['trainer_id'] = $trainer->id;
+        $validated['is_active']  = true;
+        $validated['times_used'] = 0;
+        $validated['code']       = strtoupper($validated['code']);
 
         $promo = $this->promoRepository->create($validated);
 
@@ -121,18 +142,38 @@ class TrainerPromoController extends Controller
 
         $validated = $request->validate([
             'discount_type'       => 'sometimes|in:fixed,percentage',
-            'discount_amount'     => 'sometimes|numeric|min:0',
+            'discount_amount'     => 'sometimes|numeric|min:0.01',
             'max_discount_amount' => 'nullable|numeric|min:0',
             'max_uses'            => 'nullable|integer|min:1',
-            'expires_at'          => 'nullable|date',
+            'expires_at'          => 'nullable|date|after:today',
             'is_active'           => 'sometimes|boolean',
             'is_new_user_only'    => 'sometimes|boolean',
+            'required_plan_id'    => 'nullable|integer|exists:membership_plans,id',
         ]);
+
+        // ── Trainer Discount Cap — also enforced on updates ───────────────────
+        $type   = $validated['discount_type'] ?? $promo->discount_type;
+        $amount = isset($validated['discount_amount'])
+            ? (float) $validated['discount_amount']
+            : (float) $promo->discount_amount;
+
+        if ($type === 'percentage' && $amount > 20) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'discount_amount' => ['Trainers can only offer up to 20% discount. Please enter a value between 0.01 and 20.'],
+            ]);
+        }
+
+        if ($type === 'fixed' && $amount > 50) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'discount_amount' => ['Trainers can only offer up to RM 50 fixed discount. Please enter a value between 0.01 and 50.'],
+            ]);
+        }
 
         $promo->update($validated);
 
         return response()->json($promo);
     }
+
 
     /**
      * DELETE /api/v1/trainer/promos/{id}

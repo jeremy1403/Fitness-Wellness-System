@@ -95,9 +95,9 @@ function EcosystemBanner({
         </div>
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-            Web Service Consumer · Member 4 API
+            Connected Services
           </p>
-          <p className="text-sm font-bold text-slate-800">User Ecosystem Status</p>
+          <p className="text-sm font-bold text-slate-800">Live Account Sync</p>
         </div>
         <div className="ml-auto flex items-center gap-1.5 text-[10px] font-mono text-teal-600 bg-teal-50 border border-teal-200 rounded-full px-2.5 py-1">
           <span className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-pulse" />
@@ -110,7 +110,7 @@ function EcosystemBanner({
         <div className="rounded-xl border border-slate-100 bg-white p-3.5 shadow-sm">
           <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-2 font-mono">
             <Crown className="w-3.5 h-3.5" />
-            GET /memberships/my
+            Active Subscription
           </div>
           {membershipLoading ? (
             <Skeleton className="h-6 w-32 rounded-lg" />
@@ -138,7 +138,7 @@ function EcosystemBanner({
         <div className="rounded-xl border border-slate-100 bg-white p-3.5 shadow-sm">
           <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-2 font-mono">
             <CalendarDays className="w-3.5 h-3.5" />
-            end_date
+            Billing Cycle
           </div>
           {membershipLoading ? (
             <Skeleton className="h-6 w-28 rounded-lg" />
@@ -162,7 +162,7 @@ function EcosystemBanner({
         <div className="rounded-xl border border-slate-100 bg-white p-3.5 shadow-sm">
           <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-2 font-mono">
             <Users className="w-3.5 h-3.5" />
-            user.created_at
+            Account Tenure
           </div>
           <p className="text-sm font-bold text-slate-900">
             {isNewUser ? (
