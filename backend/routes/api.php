@@ -61,7 +61,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // Module 4: Memberships & Payments
-    // Route::prefix('memberships')->group(base_path('routes/api/memberships.php'));
+    Route::prefix('memberships')->group(base_path('routes/api/memberships.php'));
 
     // Module 5: Promo Code & Campaign System (Proxy Pattern)
     // Public endpoint — rate limiting enforced via PromoCodeProxy service
