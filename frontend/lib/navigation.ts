@@ -13,6 +13,8 @@ import {
   BarChart3,
   Settings,
   BadgeDollarSign,
+  Ticket,
+  Tag,
 } from "lucide-react";
 
 export type NavItem = {
@@ -67,6 +69,13 @@ export const userNav: NavItem[] = [
     shortLabel: "Pay",
     description: "Payment history and invoices.",
     icon: CreditCard,
+  },
+  {
+    href: "/app/promos",
+    label: "Vouchers",
+    shortLabel: "Promos",
+    description: "Browse available discount codes.",
+    icon: Tag,
   },
   {
     href: "/app/profile",
@@ -140,6 +149,13 @@ export const adminNav: NavItem[] = [
     shortLabel: "Pay",
     description: "Payment monitoring.",
     icon: CreditCard,
+  },
+  {
+    href: "/admin/promo-codes",
+    label: "Promo Codes",
+    shortLabel: "Promos",
+    description: "Manage discount campaigns.",
+    icon: Ticket,
   },
   {
     href: "/admin/reports",

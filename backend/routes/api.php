@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\ClassScheduleController;
 use App\Http\Controllers\Api\FitnessClassController;
+use App\Http\Controllers\Api\PromoCodeController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
@@ -60,8 +61,30 @@ Route::prefix('v1')->group(function () {
     });
 
     // Module 4: Memberships & Payments
-    // Route::prefix('memberships')->group(base_path('routes/api/memberships.php'));
+    Route::prefix('memberships')->group(base_path('routes/api/memberships.php'));
 
+    // Module 5: Promo Code & Campaign System (Proxy Pattern)
+    // Public endpoint — rate limiting enforced via PromoCodeProxy service
+    Route::post('/promo/validate', [PromoCodeController::class, 'validateCode']);
+    // Public listing of available promos for members
+    Route::get('/promos/available', [PromoCodeController::class, 'available']);
+    // Apply a promo to a user's session (Cache, 2h TTL) — integration hook for Member 3/4
+    Route::post('/promo/apply', [PromoCodeController::class, 'applyCode']);
+    // Retrieve current applied promo — consumed by Checkout/Payment module
+    Route::get('/promo/my-active', [PromoCodeController::class, 'getActivePromo']);
+
+    // Admin CRUD — protected by admin role middleware
+    Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
+        Route::apiResource('promo-codes', PromoCodeController::class);
+    });
+
+    // Trainer Self-Service — scoped to trainer_id ownership (security enforced in controller)
+    Route::prefix('trainer')->group(function () {
+        Route::get('/promos',        [\App\Http\Controllers\Api\TrainerPromoController::class, 'index']);
+        Route::post('/promos',       [\App\Http\Controllers\Api\TrainerPromoController::class, 'store']);
+        Route::put('/promos/{id}',   [\App\Http\Controllers\Api\TrainerPromoController::class, 'update']);
+        Route::delete('/promos/{id}',[\App\Http\Controllers\Api\TrainerPromoController::class, 'destroy']);
+    });
     // Health check (includes DB connectivity)
     Route::get('/health', function () {
         $dbOk = false;

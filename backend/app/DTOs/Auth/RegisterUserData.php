@@ -1,5 +1,4 @@
 <?php
-
 namespace App\DTOs\Auth;
 
 class RegisterUserData
@@ -8,8 +7,7 @@ class RegisterUserData
         public readonly string $name,
         public readonly string $email,
         public readonly string $password,
-        public readonly string $role = 'member',
-        public readonly ?string $specialty = null,
+        public readonly string $role,
     ) {}
 
     public static function fromArray(array $data): self
@@ -19,16 +17,6 @@ class RegisterUserData
             email: $data['email'],
             password: $data['password'],
             role: $data['role'] ?? 'member',
-            specialty: $data['specialty'] ?? null,
         );
-    }
-
-    public function toArray(): array
-    {
-        return [
-            'name' => $this->name,
-            'email' => $this->email,
-            'password' => $this->password,
-        ];
     }
 }

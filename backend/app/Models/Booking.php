@@ -39,13 +39,4 @@ class Booking extends Model
     {
         return $this->status === 'cancelled';
     }
-
-    /**
-     * Returns the current State object for this booking.
-     * Used by the State Pattern to validate and resolve transitions.
-     */
-    public function getState(): BookingStateInterface
-    {
-        return BookingStateFactory::make($this->status);
-    }
 }
