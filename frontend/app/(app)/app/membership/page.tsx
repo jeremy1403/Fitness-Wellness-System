@@ -130,7 +130,8 @@ export default function MembershipPage() {
                 Pending Membership: {currentMembership.plan?.name ?? "Membership"}
               </h2>
               <p className="mt-1 text-sm text-amber-800">
-                Your payment is awaiting admin confirmation. Your membership will be activated once the payment is confirmed.
+                You already selected a package and your payment is awaiting admin confirmation.
+                You cannot choose another package until this one is approved, cancelled, or expired.
               </p>
               <p className="mt-2 text-sm text-amber-800">
                 Status{" "}
@@ -190,10 +191,10 @@ export default function MembershipPage() {
                 onClick={() => handleSubscribe(plan.id)}
               >
                 {currentMembership?.status === "active"
-                  ? "Already Subscribed"
+                  ? "You Already Have a Package"
                   : currentMembership?.status === "pending"
-                  ? "Payment Pending Confirmation"
-                  : "Proceed to Payment"}
+                    ? "Waiting for Approval"
+                    : "Proceed to Payment"}
               </Button>
             </Card>
           ))}

@@ -65,10 +65,15 @@ class MembershipService
             throw new \Exception('This membership plan is not available.');
         }
 
-        // Check if user already has an active membership
-        $existing = $this->membershipRepository->getActiveForUser($data->userId);
-        if ($existing) {
-            throw new \Exception('You already have an active membership.');
+        // Check if user already has an active or pending membership
+        $existingMemberships = $this->membershipRepository->findByUser($data->userId);
+
+        $blockingMembership = $existingMemberships->first(function ($membership) {
+            return in_array($membership->status, ['active', 'pending']);
+        });
+
+        if ($blockingMembership) {
+            throw new \Exception('You already have an active or pending membership. Please wait until it is approved, cancelled, or expired before choosing another package.');
         }
 
         $startDate = Carbon::today();
