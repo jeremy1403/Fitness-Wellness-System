@@ -31,6 +31,15 @@ class EloquentPromoCodeRepository implements PromoCodeRepositoryInterface
         return PromoCode::all();
     }
 
+    public function getSorted(string $sort = 'newest')
+    {
+        return match ($sort) {
+            'expiring_soon' => PromoCode::orderByRaw('expires_at IS NULL, expires_at ASC')->get(),
+            'most_used'     => PromoCode::orderByDesc('times_used')->get(),
+            default         => PromoCode::orderByDesc('created_at')->get(), // 'newest'
+        };
+    }
+
     public function getByTrainer(int $trainerUserId)
     {
         return PromoCode::where('trainer_id', $trainerUserId)->get();

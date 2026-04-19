@@ -118,13 +118,13 @@ export const membershipApi = {
     );
   },
 
-  // Process a payment
-  processPayment(membershipId: number, amount: number, method: string) {
+  // Process a payment (promoCode is optional — passed when a voucher is applied)
+  processPayment(membershipId: number, amount: number, method: string, promoCode?: string) {
     return http<{ message: string; data: Payment }>(
       "/payments/process",
       {
         method: "POST",
-        body: { membership_id: membershipId, amount, method },
+        body: { membership_id: membershipId, amount, method, promo_code: promoCode ?? null },
         baseUrl: "/api/memberships",
       }
     );

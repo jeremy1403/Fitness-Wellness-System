@@ -103,21 +103,55 @@ class PromoCodeController extends Controller
     }
 
     /**
-     * Display a listing of promo codes (Admin).
+     * Display a sorted listing of promo codes (Admin).
+     * Accepts ?sort=newest|expiring_soon|most_used
      */
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json($this->promoRepository->getAll());
+        $sort = $request->query('sort', 'newest');
+        return response()->json($this->promoRepository->getSorted($sort));
     }
+
 
     /**
      * Return publicly visible active promo codes for the member-facing Vouchers page.
+     * If the user is authenticated, each promo is annotated with `is_already_used`
+     * and `user_meets_tier_requirement` so the frontend can grey-out restricted vouchers.
      */
-    public function available()
+    public function available(Request $request)
     {
-        $promos = $this->promoRepository->getAll();
-        return response()->json($promos);
+        // Eager-load the required plan in one query (single JOIN, not N+1)
+        $promos = \App\Models\PromoCode::with('requiredPlan')->get();
+        $userId = optional($request->user())->id;
+
+        // If authenticated, pre-fetch the user's active membership plan_id
+        $userPlanId = null;
+        if ($userId) {
+            $userPlanId = \App\Models\Membership::where('user_id', $userId)
+                ->where('status', 'active')
+                ->where('end_date', '>=', now())
+                ->value('membership_plan_id');
+        }
+
+        $data = $promos->map(function ($promo) use ($userId, $userPlanId) {
+            $arr = $promo->toArray();
+
+            // is_already_used flag
+            $arr['is_already_used'] = $userId
+                ? $this->promoRepository->hasUserUsedCode($userId, $promo->id)
+                : false;
+
+            // Tier restriction metadata
+            $arr['required_plan_name'] = $promo->requiredPlan?->name;
+            $arr['user_meets_tier_requirement'] = $promo->required_plan_id === null
+                || ($userPlanId !== null && $userPlanId == $promo->required_plan_id);
+
+            return $arr;
+        });
+
+        return response()->json($data);
     }
+
 
     /**
      * Store a newly created promo code (Admin).
@@ -125,12 +159,13 @@ class PromoCodeController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'code' => 'required|string|unique:promo_codes,code',
-            'discount_amount' => 'required|numeric',
-            'discount_type' => 'nullable|string',
-            'is_active' => 'nullable|boolean',
-            'max_uses' => 'nullable|integer',
-            'expires_at' => 'nullable|date',
+            'code'             => 'required|string|unique:promo_codes,code',
+            'discount_amount'  => 'required|numeric',
+            'discount_type'    => 'nullable|string',
+            'is_active'        => 'nullable|boolean',
+            'max_uses'         => 'nullable|integer',
+            'expires_at'       => 'nullable|date',
+            'required_plan_id' => 'nullable|integer|exists:membership_plans,id',
         ]);
 
         $promoCode = $this->promoRepository->create($validated);
@@ -152,12 +187,13 @@ class PromoCodeController extends Controller
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
-            'code' => 'sometimes|string|unique:promo_codes,code,' . $id,
-            'discount_amount' => 'sometimes|numeric',
-            'discount_type' => 'nullable|string',
-            'is_active' => 'nullable|boolean',
-            'max_uses' => 'nullable|integer',
-            'expires_at' => 'nullable|date',
+            'code'             => 'sometimes|string|unique:promo_codes,code,' . $id,
+            'discount_amount'  => 'sometimes|numeric',
+            'discount_type'    => 'nullable|string',
+            'is_active'        => 'nullable|boolean',
+            'max_uses'         => 'nullable|integer',
+            'expires_at'       => 'nullable|date',
+            'required_plan_id' => 'nullable|integer|exists:membership_plans,id',
         ]);
 
         $promoCode = $this->promoRepository->update($id, $validated);
@@ -172,4 +208,42 @@ class PromoCodeController extends Controller
         $this->promoRepository->delete($id);
         return response()->json(null, 204);
     }
+
+    /**
+     * Admin: Fetch redemption history for a specific promo code.
+     * Returns the pivot users with name, email, and used_at timestamp.
+     */
+    public function promoHistory(int $id)
+    {
+        $promo = $this->promoRepository->findById($id);
+
+        $history = $promo->redeemedByUsers()->get()->map(fn($user) => [
+            'user_id' => $user->id,
+            'name'    => $user->name,
+            'email'   => $user->email,
+            'used_at' => $user->pivot->used_at,
+        ]);
+
+        return response()->json([
+            'code'    => $promo->code,
+            'history' => $history,
+        ]);
+    }
+
+    /**
+     * Admin: Quick-toggle is_active without opening the edit modal.
+     */
+    public function toggleActive(int $id)
+    {
+        $promo   = $this->promoRepository->findById($id);
+        $updated = $this->promoRepository->update($id, [
+            'is_active' => !$promo->is_active,
+        ]);
+
+        return response()->json([
+            'message'   => 'Status toggled.',
+            'is_active' => (bool) $updated->is_active,
+        ]);
+    }
 }
+

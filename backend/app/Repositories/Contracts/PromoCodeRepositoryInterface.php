@@ -10,6 +10,7 @@ interface PromoCodeRepositoryInterface
     public function incrementUsage(PromoCode $promoCode): bool;
     public function hasUserUsedCode(int $userId, int $promoCodeId): bool;
     public function getAll();
+    public function getSorted(string $sort = 'newest');
     public function getByTrainer(int $trainerUserId);
     public function create(array $data);
     public function findById(int $id);

@@ -47,14 +47,16 @@ class PaymentController extends Controller
             'membership_id' => 'required|integer|exists:memberships,id',
             'amount'        => 'required|numeric|min:0',
             'method'        => 'required|string|in:cash,transfer,card_mock',
+            'promo_code'    => 'nullable|string|max:50',
         ]);
 
         $payment = $this->paymentService->processPayment(
             new ProcessPaymentData(
-                userId: $request->user()->id,
+                userId:       $request->user()->id,
                 membershipId: $request->membership_id,
-                amount: $request->amount,
-                method: $request->method,
+                amount:       $request->amount,
+                method:       $request->method,
+                promoCode:    $request->promo_code ? strtoupper(trim($request->promo_code)) : null,
             )
         );
 

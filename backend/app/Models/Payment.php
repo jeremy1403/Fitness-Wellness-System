@@ -18,11 +18,14 @@ class Payment extends Model
         'status',
         'paid_at',
         'reference_no',
+        'promo_code_id',
+        'discount_applied',
     ];
 
     protected $casts = [
-        'amount' => 'decimal:2',
-        'paid_at' => 'datetime',
+        'amount'           => 'decimal:2',
+        'discount_applied' => 'decimal:2',
+        'paid_at'          => 'datetime',
     ];
 
     public function membership(): BelongsTo
@@ -33,5 +36,10 @@ class Payment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function promoCode(): BelongsTo
+    {
+        return $this->belongsTo(PromoCode::class);
     }
 }
