@@ -63,6 +63,16 @@ class User extends Authenticatable
         return $this->hasMany(Payment::class);
     }
 
+    /**
+     * Promo codes this user has already redeemed (pivot: promo_code_user).
+     */
+    public function usedPromoCodes(): BelongsToMany
+    {
+        return $this->belongsToMany(PromoCode::class, 'promo_code_user')
+                    ->withPivot('used_at')
+                    ->withTimestamps();
+    }
+
     public function hasRole(string $roleName): bool
     {
         return $this->roles()->where('name', $roleName)->exists();

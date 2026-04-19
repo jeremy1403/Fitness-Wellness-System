@@ -18,9 +18,22 @@ class EloquentPromoCodeRepository implements PromoCodeRepositoryInterface
         return $promoCode->save();
     }
 
+    public function hasUserUsedCode(int $userId, int $promoCodeId): bool
+    {
+        return \App\Models\User::find($userId)
+            ?->usedPromoCodes()
+            ->where('promo_code_id', $promoCodeId)
+            ->exists() ?? false;
+    }
+
     public function getAll()
     {
         return PromoCode::all();
+    }
+
+    public function getByTrainer(int $trainerUserId)
+    {
+        return PromoCode::where('trainer_id', $trainerUserId)->get();
     }
 
     public function create(array $data)

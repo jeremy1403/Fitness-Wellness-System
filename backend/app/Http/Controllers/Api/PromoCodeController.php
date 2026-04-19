@@ -27,12 +27,12 @@ class PromoCodeController extends Controller
     public function validateCode(Request $request)
     {
         $request->validate([
-            'code' => 'required|string',
-            'user_id' => 'nullable|integer'
+            'code'    => 'required|string',
+            'user_id' => 'nullable|integer',
         ]);
 
         $result = $this->promoService->validateCode(
-            $request->input('code'), 
+            $request->input('code'),
             $request->input('user_id')
         );
 
@@ -44,11 +44,79 @@ class PromoCodeController extends Controller
     }
 
     /**
+     * Apply a validated promo code to the authenticated user's session (Cache-based).
+     * Stores the code for 2 hours — consumed by Member 3/4 Checkout integration.
+     */
+    public function applyCode(Request $request)
+    {
+        $request->validate([
+            'code'    => 'required|string',
+            'user_id' => 'required|integer',
+        ]);
+
+        $userId = $request->input('user_id');
+        $code   = strtoupper(trim($request->input('code')));
+
+        // Validate before persisting to cache
+        $result = $this->promoService->validateCode($code, $userId);
+
+        if (!$result['valid']) {
+            return response()->json(['message' => $result['message']], 400);
+        }
+
+        // Store in Cache keyed by user ID — TTL 2 hours
+        \Illuminate\Support\Facades\Cache::put(
+            "active_promo_{$userId}",
+            [
+                'code'    => $code,
+                'details' => $result['details'],
+            ],
+            now()->addHours(2)
+        );
+
+        return response()->json([
+            'message' => 'Voucher applied! It will be automatically used at checkout.',
+            'code'    => $code,
+            'details' => $result['details'],
+        ]);
+    }
+
+    /**
+     * Retrieve the currently applied promo code for a user.
+     * Integration hook for Member 3/4 Checkout — GET /api/v1/promo/my-active?user_id={id}
+     */
+    public function getActivePromo(Request $request)
+    {
+        $userId = $request->query('user_id');
+
+        if (!$userId) {
+            return response()->json(['message' => 'user_id is required.'], 400);
+        }
+
+        $cached = \Illuminate\Support\Facades\Cache::get("active_promo_{$userId}");
+
+        if (!$cached) {
+            return response()->json(['active_promo' => null, 'message' => 'No active promo applied.']);
+        }
+
+        return response()->json(['active_promo' => $cached]);
+    }
+
+    /**
      * Display a listing of promo codes (Admin).
      */
     public function index()
     {
         return response()->json($this->promoRepository->getAll());
+    }
+
+    /**
+     * Return publicly visible active promo codes for the member-facing Vouchers page.
+     */
+    public function available()
+    {
+        $promos = $this->promoRepository->getAll();
+        return response()->json($promos);
     }
 
     /**

@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class PromoCode extends Model
 {
@@ -17,8 +19,11 @@ class PromoCode extends Model
      */
     protected $fillable = [
         'code',
+        'trainer_id',
         'discount_amount',
         'discount_type',
+        'max_discount_amount',
+        'is_new_user_only',
         'is_active',
         'max_uses',
         'times_used',
@@ -26,8 +31,28 @@ class PromoCode extends Model
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
-        'discount_amount' => 'decimal:2',
-        'expires_at' => 'datetime',
+        'is_active'           => 'boolean',
+        'is_new_user_only'    => 'boolean',
+        'discount_amount'     => 'decimal:2',
+        'max_discount_amount' => 'decimal:2',
+        'expires_at'          => 'datetime',
     ];
+
+    /**
+     * The trainer (User) who created this promo code. Null = admin-issued.
+     */
+    public function trainer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'trainer_id');
+    }
+
+    /**
+     * The users who have redeemed this promo code (pivot: promo_code_user).
+     */
+    public function redeemedByUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'promo_code_user')
+                    ->withPivot('used_at')
+                    ->withTimestamps();
+    }
 }

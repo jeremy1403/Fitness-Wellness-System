@@ -3,9 +3,12 @@
 namespace App\Services\Promo;
 
 use App\Models\PromoCode;
+use App\Models\User;
 use App\Services\Contracts\PromoServiceInterface;
 use App\Repositories\Contracts\PromoCodeRepositoryInterface;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class RealPromoService implements PromoServiceInterface
 {
@@ -17,11 +20,11 @@ class RealPromoService implements PromoServiceInterface
     }
 
     /**
-     * Validates the promo code directly against the database logic.
+     * Validates the promo code with full business rule checks.
+     * SQL Injection prevention: all DB queries use Eloquent parameterized queries via the repository.
      */
     public function validateCode(string $code, ?int $userId = null): array
     {
-        // SQL Injection prevention via repository which uses Eloquent parameterized queries
         $promo = $this->promoRepository->findByCode($code);
 
         if (!$promo) {
@@ -40,33 +43,60 @@ class RealPromoService implements PromoServiceInterface
             return ['valid' => false, 'message' => 'Promo code usage limit reached.'];
         }
 
-        // Consume placeholder logic: Determine if the code applies to specific user conditions
-        // Example: Only apply new user discount
-        if ($this->isNewUserRequired($promo->code) && !$this->checkIfNewUser($userId)) {
-            return ['valid' => false, 'message' => 'This promo code is only valid for new users.'];
+        // ── Advanced Rule 1: New-User-Only Check ────────────────────────────
+        if ($promo->is_new_user_only) {
+            $user = $userId ? User::find($userId) : Auth::user();
+            if (!$user || !$this->isNewUser($user)) {
+                return ['valid' => false, 'message' => 'This voucher is for new users only (accounts created within the last 30 days).'];
+            }
+        }
+
+        // ── Advanced Rule 2: Per-User Usage Limit ───────────────────────────
+        if ($userId) {
+            $alreadyUsed = $this->promoRepository->hasUserUsedCode($userId, $promo->id);
+            if ($alreadyUsed) {
+                return ['valid' => false, 'message' => 'You have already used this promo code.'];
+            }
+        }
+
+        // ── Advanced Rule 3: Max Cap Calculation for Percentage Promos ──────
+        $discountAmount = (float) $promo->discount_amount;
+        $cappedAt = null;
+
+        if ($promo->discount_type === 'percentage' && $promo->max_discount_amount !== null) {
+            // This is computed on the backend for integrity; the cart total would come from the request in a full integration
+            $cappedAt = (float) $promo->max_discount_amount;
         }
 
         return [
-            'valid' => true,
+            'valid'   => true,
             'message' => 'Promo code applied successfully!',
             'details' => [
-                'discount_type' => $promo->discount_type,
-                'discount_amount' => $promo->discount_amount,
-            ]
+                'discount_type'       => $promo->discount_type,
+                'discount_amount'     => $discountAmount,
+                'max_discount_amount' => $cappedAt,
+                'is_new_user_only'    => $promo->is_new_user_only,
+                'promo_code_id'       => $promo->id,
+            ],
         ];
     }
 
-    private function isNewUserRequired(string $code): bool
+    /**
+     * Checks whether the user account was created within the last 30 days.
+     * This replaces the previous isNewUserRequired() / checkIfNewUser() placeholder pair.
+     */
+    private function isNewUser(User $user): bool
     {
-        return str_starts_with(strtoupper($code), 'NEW');
+        return $user->created_at->greaterThan(Carbon::now()->subDays(30));
     }
 
-    private function checkIfNewUser(?int $userId): bool
-    {
-        // Placeholder for consuming Member 1's (User Access) API
-        // if (!$userId) return false;
-        // $response = Http::get("http://internal-user-api/users/{$userId}/is-new");
-        // return $response->json('is_new');
-        return true; 
-    }
+    // ── NOTE: Consuming Member 1's User Access API ──────────────────────────
+    // The isNewUser() method above uses the local User model for now.
+    // When Member 1 exposes their microservice, this check can be replaced with:
+    //
+    //   $response = Http::withToken($internalToken)
+    //       ->get("http://user-service/api/v1/users/{$userId}/is-new");
+    //   return $response->successful() && $response->json('is_new') === true;
+    //
+    // The method signature stays the same — zero changes to callers.
 }
