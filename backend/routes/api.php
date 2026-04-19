@@ -66,7 +66,8 @@ Route::prefix('v1')->group(function () {
     // Module 5: Promo Code & Campaign System (Proxy Pattern)
     // Public endpoint — rate limiting enforced via PromoCodeProxy service
     Route::post('/promo/validate', [PromoCodeController::class, 'validateCode']);
-    // Public listing of available promos for members
+    // Public listing of available promos — optional auth so is_already_used is injected per user
+    Route::middleware('auth:sanctum')->get('/promos/available', [PromoCodeController::class, 'available']);
     Route::get('/promos/available', [PromoCodeController::class, 'available']);
     // Apply a promo to a user's session (Cache, 2h TTL) — integration hook for Member 3/4
     Route::post('/promo/apply', [PromoCodeController::class, 'applyCode']);
@@ -76,6 +77,8 @@ Route::prefix('v1')->group(function () {
     // Admin CRUD — protected by admin role middleware
     Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
         Route::apiResource('promo-codes', PromoCodeController::class);
+        Route::get('promo-codes/{id}/history',        [PromoCodeController::class, 'promoHistory']);
+        Route::patch('promo-codes/{id}/toggle-active', [PromoCodeController::class, 'toggleActive']);
     });
 
     // Trainer Self-Service — scoped to trainer_id ownership (security enforced in controller)

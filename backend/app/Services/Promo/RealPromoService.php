@@ -59,7 +59,38 @@ class RealPromoService implements PromoServiceInterface
             }
         }
 
-        // ── Advanced Rule 3: Max Cap Calculation for Percentage Promos ──────
+        // ── Advanced Rule 3: Membership Tier Restriction (Consumes Member 4) ──
+        // If the promo has a required_plan_id, verify the user holds that active plan.
+        // This is a deliberate Service Consumption point: Member 5 → Member 4's data layer.
+        if ($promo->required_plan_id !== null) {
+            $user = $userId ? User::find($userId) : Auth::user();
+
+            $hasRequiredTier = false;
+
+            if ($user) {
+                // Consume Member 4's Membership model directly (same monolith).
+                // In a true microservice, this would be an authenticated HTTP call to
+                //   GET /api/v1/memberships/status for the target user.
+                $activeMembership = \App\Models\Membership::where('user_id', $user->id)
+                    ->where('membership_plan_id', $promo->required_plan_id)
+                    ->where('status', 'active')
+                    ->where('end_date', '>=', now())
+                    ->first();
+
+                $hasRequiredTier = $activeMembership !== null;
+            }
+
+            if (!$hasRequiredTier) {
+                // Load plan name for a friendly error message
+                $planName = \App\Models\MembershipPlan::find($promo->required_plan_id)?->name ?? 'required';
+                return [
+                    'valid'   => false,
+                    'message' => "This voucher is reserved for members on the \"{$planName}\" plan.",
+                ];
+            }
+        }
+
+        // ── Discount Calculation ─────────────────────────────────────────────
         $discountAmount = (float) $promo->discount_amount;
         $cappedAt = null;
 
@@ -77,9 +108,11 @@ class RealPromoService implements PromoServiceInterface
                 'max_discount_amount' => $cappedAt,
                 'is_new_user_only'    => $promo->is_new_user_only,
                 'promo_code_id'       => $promo->id,
+                'required_plan_id'    => $promo->required_plan_id,
             ],
         ];
     }
+
 
     /**
      * Checks whether the user account was created within the last 30 days.

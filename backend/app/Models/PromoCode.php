@@ -20,6 +20,7 @@ class PromoCode extends Model
     protected $fillable = [
         'code',
         'trainer_id',
+        'required_plan_id',
         'discount_amount',
         'discount_type',
         'max_discount_amount',
@@ -44,6 +45,15 @@ class PromoCode extends Model
     public function trainer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'trainer_id');
+    }
+
+    /**
+     * The membership plan required to redeem this code. Null = open to everyone.
+     * Consumed from Member 4's MembershipPlan model — cross-module FK.
+     */
+    public function requiredPlan(): BelongsTo
+    {
+        return $this->belongsTo(MembershipPlan::class, 'required_plan_id');
     }
 
     /**

@@ -14,7 +14,16 @@ export type PromoCode = {
   expires_at: string | null;
   created_at: string;
   updated_at: string;
+  /** Injected by backend: true if this user already redeemed it */
+  is_already_used?: boolean;
+  /** Required membership plan ID — null means open to all tiers */
+  required_plan_id?: number | null;
+  /** Human-readable plan name, eager-loaded by the backend */
+  required_plan_name?: string | null;
+  /** True if the user's active plan satisfies the restriction */
+  user_meets_tier_requirement?: boolean;
 };
+
 
 export type ApplyPromoResult = {
   message: string;
@@ -29,10 +38,21 @@ export type ApplyPromoResult = {
 };
 
 export const adminPromoApi = {
-  getAll: () => http<PromoCode[]>("/admin/promo-codes", { method: "GET" }),
+  getAll: (sort: string = "newest") =>
+    http<PromoCode[]>(`/admin/promo-codes?sort=${sort}`, { method: "GET" }),
+
   create: (data: Partial<PromoCode>) => http<PromoCode>("/admin/promo-codes", { method: "POST", body: data }),
   update: (id: number, data: Partial<PromoCode>) => http<PromoCode>(`/admin/promo-codes/${id}`, { method: "PUT", body: data }),
   delete: (id: number) => http(`/admin/promo-codes/${id}`, { method: "DELETE" }),
+  /** Quick-toggle is_active without opening the edit modal */
+  toggleActive: (id: number) =>
+    http<{ message: string; is_active: boolean }>(`/admin/promo-codes/${id}/toggle-active`, { method: "PATCH" }),
+  /** Fetch redemption history for a specific promo code */
+  getHistory: (id: number) =>
+    http<{ code: string; history: { user_id: number; name: string; email: string; used_at: string }[] }>(
+      `/admin/promo-codes/${id}/history`,
+      { method: "GET" }
+    ),
 };
 
 export const promoValidateApi = {
