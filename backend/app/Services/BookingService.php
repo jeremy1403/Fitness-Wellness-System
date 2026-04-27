@@ -62,30 +62,36 @@ class BookingService
             $advanceDays = $membership->plan->booking_advance_days;
             if ($schedule->start_datetime > now()->addDays($advanceDays)) {
                 throw new Exception(
-                    "{$membership->plan->name} plan allows booking only within {$advanceDays} day(s) in advance."
+                    "{$membership->plan->tier_name} plan allows booking only within {$advanceDays} day(s) in advance."
                 );
             }
         }
 
-        // ── 5. Determine daily quota ──────────────────────────────────────────
-        //    Free Tier (no active membership) → quota = 0 (always pays)
-        //    Any active plan                  → quota = plan.booking_daily_limit
-        $dailyQuota = 0;
-
+        // ── 5. Determine limits ──────────────────────────────────────────
         if ($membership && $membership->plan) {
-            $dailyQuota = (int) $membership->plan->booking_daily_limit;
+            $dailyFreeQuota = (int) $membership->plan->daily_free_quota;
+            $maxDailyBookings = $membership->plan->max_daily_bookings !== null ? (int) $membership->plan->max_daily_bookings : 9999;
+        } else {
+            $freePlan = \App\Models\MembershipPlan::where('tier_name', 'free')->first();
+            $dailyFreeQuota = $freePlan ? (int) $freePlan->daily_free_quota : 0;
+            $maxDailyBookings = $freePlan && $freePlan->max_daily_bookings !== null ? (int) $freePlan->max_daily_bookings : 1;
         }
 
         // ── 6. Count how many active bookings the user already has today ──────
         $classDate      = $schedule->start_datetime->toDateString();
         $todayBookings  = $this->bookingRepository->countActiveBookingsForDate($user->id, $classDate);
 
+        // ── Hard Cap Check ──────────────────────────────────────────
+        if ($todayBookings >= $maxDailyBookings) {
+            throw new Exception("You have reached your maximum daily booking limit. Please upgrade your membership to book more classes.");
+        }
+
         // ── 7. Decision Engine ────────────────────────────────────────────────
         $minutes = \Carbon\Carbon::parse($schedule->start_datetime)
             ->diffInMinutes(\Carbon\Carbon::parse($schedule->end_datetime));
         $classPrice = ceil($minutes / 5) * 3;
 
-        if ($dailyQuota > 0 && $todayBookings < $dailyQuota) {
+        if ($todayBookings < $dailyFreeQuota) {
             // ✅ Quota available — book for free
             $booking = $this->bookingRepository->create([
                 'user_id'           => $user->id,
@@ -99,15 +105,8 @@ class BookingService
         }
 
         // 💳 Quota exhausted or Free Tier — requires payment
-        $booking = $this->bookingRepository->create([
-            'user_id'           => $user->id,
-            'class_schedule_id' => $scheduleId,
-            'status'            => 'pending_payment',
-            'is_quota_used'     => false,
-            'booked_at'         => now(),
-        ]);
-
-        return BookingResult::paymentRequired($booking, $classPrice);
+        // DEFERRED CREATION: Do not insert into DB yet.
+        return BookingResult::paymentRequired($scheduleId, $classPrice);
     }
 
     // =========================================================================

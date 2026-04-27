@@ -154,77 +154,75 @@ class PaymentService
      */
     public function processClassPayment(ProcessClassPaymentData $data): Payment
     {
-        $booking = $this->bookingRepository->findById($data->bookingId);
+        return DB::transaction(function () use ($data) {
+            // Lock the schedule to prevent overbooking
+            $schedule = \App\Models\ClassSchedule::lockForUpdate()->findOrFail($data->scheduleId);
 
-        if (!$booking) {
-            throw new \Exception('Booking not found.');
-        }
+            // Calculate base price dynamically
+            $minutes = \Carbon\Carbon::parse($schedule->start_datetime)
+                ->diffInMinutes(\Carbon\Carbon::parse($schedule->end_datetime));
+            $classPrice = ceil($minutes / 5) * 3;
 
-        if ($booking->user_id !== $data->userId) {
-            throw new \Exception('Unauthorized.');
-        }
-
-        if ($booking->status !== 'pending_payment') {
-            throw new \Exception(
-                "This booking cannot be paid — current status is '{$booking->status}'."
-            );
-        }
-
-        // ── Promo Code Validation & Discount Calculation ────────────────────
-        $finalAmount      = $data->amount;
-        $discountApplied  = 0.0;
-        $promoCodeId      = null;
-
-        if (!empty($data->promoCode)) {
-            $validation = $this->promoService->validateCode($data->promoCode, $data->userId);
-
-            if (!$validation['valid']) {
-                throw new \Exception($validation['message']);
+            if ($data->amount < $classPrice) {
+                throw new \Exception(
+                    "Payment amount (RM {$data->amount}) is less than the class price (RM {$classPrice})."
+                );
             }
 
-            $details     = $validation['details'];
-            $promoCodeId = $details['promo_code_id'];
+            // ── Promo Code Validation & Discount Calculation ────────────────────
+            $finalAmount      = $data->amount;
+            $discountApplied  = 0.0;
+            $promoCodeId      = null;
 
-            if ($details['discount_type'] === 'percentage') {
-                // Calculate percentage of the original class price
-                $calculated = ($data->amount * $details['discount_amount']) / 100;
+            if (!empty($data->promoCode)) {
+                $validation = $this->promoService->validateCode($data->promoCode, $data->userId);
 
-                // ── MAX CAP ENFORCEMENT (Critical Business Rule) ─────────────
-                if (!is_null($details['max_discount_amount']) && $details['max_discount_amount'] > 0) {
-                    $calculated = min($calculated, (float) $details['max_discount_amount']);
+                if (!$validation['valid']) {
+                    throw new \Exception($validation['message']);
                 }
 
-                $discountApplied = $calculated;
-            } else {
-                // Flat discount — never exceed the original price
-                $discountApplied = min((float) $details['discount_amount'], $data->amount);
+                $details     = $validation['details'];
+                $promoCodeId = $details['promo_code_id'];
+
+                if ($details['discount_type'] === 'percentage') {
+                    // Calculate percentage of the original class price
+                    $calculated = ($data->amount * $details['discount_amount']) / 100;
+
+                    // ── MAX CAP ENFORCEMENT (Critical Business Rule) ─────────────
+                    if (!is_null($details['max_discount_amount']) && $details['max_discount_amount'] > 0) {
+                        $calculated = min($calculated, (float) $details['max_discount_amount']);
+                    }
+
+                    $discountApplied = $calculated;
+                } else {
+                    // Flat discount — never exceed the original price
+                    $discountApplied = min((float) $details['discount_amount'], $data->amount);
+                }
+
+                $finalAmount = max(0, $data->amount - $discountApplied);
             }
 
-            $finalAmount = max(0, $data->amount - $discountApplied);
-        }
+            $status = $data->method === 'cash' ? 'pending_payment' : 'confirmed';
 
-        // ── Anti-tamper: verify paid amount >= class list price (before discount) ───────────────
-        $minutes = \Carbon\Carbon::parse($booking->classSchedule->start_datetime)
-            ->diffInMinutes(\Carbon\Carbon::parse($booking->classSchedule->end_datetime));
-        $classPrice = ceil($minutes / 5) * 3;
+            // DEFERRED CREATION: Insert the booking now
+            $booking = $this->bookingRepository->create([
+                'user_id'           => $data->userId,
+                'class_schedule_id' => $data->scheduleId,
+                'status'            => $status,
+                'is_quota_used'     => false,
+                'booked_at'         => now(),
+            ]);
 
-        if ($data->amount < $classPrice) {
-            throw new \Exception(
-                "Payment amount (RM {$data->amount}) is less than the class price (RM {$classPrice})."
-            );
-        }
-
-        return DB::transaction(function () use ($data, $booking, $finalAmount, $discountApplied, $promoCodeId) {
-            $status = $data->method === 'cash' ? 'pending' : 'paid';
+            $paymentStatus = $data->method === 'cash' ? 'pending' : 'paid';
 
             // Create payment linked to the booking (not a membership)
             $payment = $this->paymentRepository->create([
                 'membership_id'    => null,
-                'booking_id'       => $data->bookingId,
+                'booking_id'       => $booking->id,
                 'user_id'          => $data->userId,
                 'amount'           => $finalAmount,
                 'method'           => $data->method,
-                'status'           => $status,
+                'status'           => $paymentStatus,
                 'paid_at'          => now(),
                 'reference_no'     => $this->generateReferenceNo(),
                 'promo_code_id'    => $promoCodeId,
@@ -233,7 +231,8 @@ class PaymentService
 
             AppLogger::info('payment', 'Class payment created', [
                 'user_id'          => $data->userId,
-                'booking_id'       => $data->bookingId,
+                'schedule_id'      => $data->scheduleId,
+                'booking_id'       => $booking->id,
                 'payment_id'       => $payment->id,
                 'method'           => $payment->method,
                 'status'           => $payment->status,
@@ -243,13 +242,9 @@ class PaymentService
 
             // Only confirm the booking immediately for non-cash payments.
             // Cash payments stay pending_payment until admin runs markAsPaid().
-            if ($status === 'paid') {
-                $this->bookingRepository->update($booking, [
-                    'status' => 'confirmed',
-                ]);
-
+            if ($paymentStatus === 'paid') {
                 AppLogger::info('payment', 'Booking confirmed after class payment', [
-                    'booking_id' => $data->bookingId,
+                    'booking_id' => $booking->id,
                     'payment_id' => $payment->id,
                 ]);
 

@@ -70,7 +70,7 @@ export const bookingsApi = {
 // ─── Pay-Per-Class Checkout API ───────────────────────────────────────────────
 
 export interface ClassPaymentPayload {
-  booking_id: number;
+  schedule_id: number;
   amount: number;
   method: "cash" | "transfer" | "card_mock";
   promo_code?: string;

@@ -23,9 +23,10 @@ use App\Models\Booking;
 final class BookingResult
 {
     public function __construct(
-        public readonly Booking $booking,
+        public readonly ?Booking $booking,
         public readonly bool    $requiresPayment,
         public readonly ?float  $classPrice = null,
+        public readonly ?int    $scheduleId = null,
     ) {}
 
     /**
@@ -37,6 +38,7 @@ final class BookingResult
             booking:         $booking,
             requiresPayment: false,
             classPrice:      null,
+            scheduleId:      $booking->class_schedule_id,
         );
     }
 
@@ -45,12 +47,13 @@ final class BookingResult
      *
      * @param float $classPrice The price the user must pay to confirm this booking.
      */
-    public static function paymentRequired(Booking $booking, float $classPrice): self
+    public static function paymentRequired(int $scheduleId, float $classPrice): self
     {
         return new self(
-            booking:         $booking,
+            booking:         null,
             requiresPayment: true,
             classPrice:      $classPrice,
+            scheduleId:      $scheduleId,
         );
     }
 }

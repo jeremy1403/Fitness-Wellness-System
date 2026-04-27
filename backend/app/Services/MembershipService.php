@@ -160,7 +160,8 @@ class MembershipService
             'tier_name'            => $data->tierName,
             'billing_cycle'        => $data->billingCycle,
             'price'                => $data->price,
-            'booking_daily_limit'  => $data->bookingDailyLimit,
+            'daily_free_quota'     => $data->dailyFreeQuota,
+            'max_daily_bookings'   => $data->maxDailyBookings,
             'booking_advance_days' => $data->bookingAdvanceDays,
             'status'               => $data->status,
         ]);
@@ -177,7 +178,8 @@ class MembershipService
             'tier_name'            => $data->tierName,
             'billing_cycle'        => $data->billingCycle,
             'price'                => $data->price,
-            'booking_daily_limit'  => $data->bookingDailyLimit,
+            'daily_free_quota'     => $data->dailyFreeQuota,
+            'max_daily_bookings'   => $data->maxDailyBookings,
             'booking_advance_days' => $data->bookingAdvanceDays,
             'status'               => $data->status,
         ]);

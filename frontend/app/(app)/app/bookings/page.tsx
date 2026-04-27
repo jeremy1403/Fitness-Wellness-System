@@ -52,7 +52,8 @@ function MembershipBanner() {
       status: string;
       plan?: {
         tier_name: string;
-        booking_daily_limit: number;
+        daily_free_quota: number;
+        max_daily_bookings: number | null;
         booking_advance_days: number;
       };
     } | null;
@@ -117,10 +118,10 @@ function MembershipBanner() {
         <div className="flex gap-4">
           <div className="text-center">
             <p className="text-lg font-bold text-emerald-700">
-              {plan.booking_daily_limit}
+              {plan.daily_free_quota}
             </p>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600">
-              Bookings/day
+              Free classes/day
             </p>
           </div>
           <div className="text-center">

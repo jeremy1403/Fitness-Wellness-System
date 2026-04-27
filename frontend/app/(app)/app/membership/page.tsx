@@ -188,7 +188,8 @@ export default function MembershipPage() {
               </div>
 
               <ul className="flex flex-col gap-1 text-sm text-slate-600">
-                <li>✓ Up to {plan.booking_daily_limit} bookings/day</li>
+                <li>✓ {plan.daily_free_quota} Free classes / day</li>
+                <li>✓ Max {plan.max_daily_bookings ?? 'Unlimited'} total bookings / day</li>
                 <li>✓ Book up to {plan.booking_advance_days} days ahead</li>
               </ul>
 

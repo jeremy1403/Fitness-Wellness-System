@@ -112,7 +112,7 @@ class PaymentController extends Controller
     public function processClassPayment(Request $request): JsonResponse
     {
         $request->validate([
-            'booking_id' => 'required|integer|exists:bookings,id',
+            'schedule_id' => 'required|integer|exists:class_schedules,id',
             'amount'     => 'required|numeric|min:0.01',
             'method'     => 'required|string|in:cash,transfer,card_mock',
             'promo_code' => 'nullable|string',
@@ -122,7 +122,7 @@ class PaymentController extends Controller
             $payment = $this->paymentService->processClassPayment(
                 new ProcessClassPaymentData(
                     userId:    $request->user()->id,
-                    bookingId: $request->booking_id,
+                    scheduleId: $request->schedule_id,
                     amount:    (float) $request->amount,
                     method:    $request->method,
                     promoCode: $request->promo_code,

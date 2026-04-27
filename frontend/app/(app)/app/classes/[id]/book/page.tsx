@@ -103,7 +103,7 @@ function ClassBookingContent() {
         setToast({ message: "🎉 Successfully booked using your daily quota!", type: "success" });
         setTimeout(() => router.push("/app/bookings"), 1500);
       } else {
-        router.push(`/app/payments?booking_id=${res.booking_id}&amount=${res.class_price}`);
+        router.push(`/app/payments?schedule_id=${res.schedule_id}&amount=${res.class_price}`);
       }
     } catch (e) {
       const message = e instanceof ApiError ? e.message : "Booking failed. Please try again.";

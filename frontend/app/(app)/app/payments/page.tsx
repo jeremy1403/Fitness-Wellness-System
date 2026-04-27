@@ -39,7 +39,7 @@ export default function PaymentsPage() {
   const router = useRouter();
 
   const [planIdParam, setPlanIdParam] = useState<string | null>(null);
-  const [bookingIdParam, setBookingIdParam] = useState<string | null>(null);
+  const [scheduleIdParam, setscheduleIdParam] = useState<string | null>(null);
   const [classAmountParam, setClassAmountParam] = useState<string | null>(null);
 
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
@@ -117,7 +117,7 @@ export default function PaymentsPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setPlanIdParam(params.get("plan_id"));
-    setBookingIdParam(params.get("booking_id"));
+    setscheduleIdParam(params.get("schedule_id"));
     setClassAmountParam(params.get("amount"));
     fetchData();
     fetchAvailablePromos();
@@ -273,11 +273,11 @@ export default function PaymentsPage() {
   }
 
   async function handlePayNow() {
-    if (!selectedPlan && !bookingIdParam) {
+    if (!selectedPlan && !scheduleIdParam) {
       setMessage("Selected item not found.");
       return;
     }
-    if (hasBlockingMembership && !bookingIdParam) {
+    if (hasBlockingMembership && !scheduleIdParam) {
       setMessage(
         "You already have an active or pending membership. Please wait until it is approved, cancelled, or expired before choosing another package."
       );
@@ -294,9 +294,9 @@ export default function PaymentsPage() {
     try {
       let paymentRes;
 
-      if (bookingIdParam) {
+      if (scheduleIdParam) {
         paymentRes = await classPaymentsApi.processClassPayment({
-          booking_id: Number(bookingIdParam),
+          schedule_id: Number(scheduleIdParam),
           amount: originalPrice,
           method: paymentMethod,
           promo_code: appliedPromo?.code ?? undefined,
@@ -327,7 +327,7 @@ export default function PaymentsPage() {
         return;
       }
 
-      router.push(bookingIdParam ? "/app/bookings" : "/app/membership?success=payment");
+      router.push(scheduleIdParam ? "/app/bookings" : "/app/membership?success=payment");
     } catch (err: any) {
       setMessage(
         err?.data?.message || err?.message || "Payment failed. Please try again."
@@ -381,9 +381,9 @@ export default function PaymentsPage() {
         </div>
       )}
 
-      {(planIdParam || bookingIdParam) && (
+      {(planIdParam || scheduleIdParam) && (
         <Card className="rounded-3xl border border-blue-200 bg-blue-50 p-6">
-          {!selectedPlan && !bookingIdParam ? (
+          {!selectedPlan && !scheduleIdParam ? (
             <div className="flex flex-col gap-3">
               <h2 className="text-lg font-semibold text-slate-900">Checkout</h2>
               <p className="text-sm text-red-600">
@@ -392,7 +392,7 @@ export default function PaymentsPage() {
             </div>
           ) : (
             <div className="flex flex-col gap-5">
-              {bookingIdParam ? (
+              {scheduleIdParam ? (
                 <div>
                   <h2 className="text-lg font-semibold text-slate-900">
                     Class Checkout
@@ -412,14 +412,14 @@ export default function PaymentsPage() {
                 </div>
               )}
 
-              {bookingIdParam ? (
+              {scheduleIdParam ? (
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="rounded-2xl border border-slate-200 bg-white p-4">
                     <p className="text-sm text-slate-500">Booking Item</p>
                     <p className="text-lg font-semibold text-slate-900">
                       Fitness Class
                     </p>
-                    <p className="text-xs text-slate-400">ID: #{bookingIdParam}</p>
+                    <p className="text-xs text-slate-400">ID: #{scheduleIdParam}</p>
                   </div>
 
                   <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -495,9 +495,9 @@ export default function PaymentsPage() {
                   </div>
 
                   <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <p className="text-sm text-slate-500">Daily Booking Limit</p>
+                    <p className="text-sm text-slate-500">Daily Free Quota</p>
                     <p className="text-lg font-semibold text-slate-900">
-                      {selectedPlan.booking_daily_limit} bookings/day
+                      {selectedPlan.daily_free_quota} classes/day
                     </p>
                   </div>
 

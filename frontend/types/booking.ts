@@ -74,9 +74,9 @@ export interface PendingPaymentBookingResponse {
   status: "pending_payment";
   message: string;
   requires_payment: true;
-  booking_id: number;
+  schedule_id: number;
   class_price: number;
-  data: Booking;
+  data: null;
 }
 
 export type BookingCreateResult =

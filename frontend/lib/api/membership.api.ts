@@ -6,7 +6,8 @@ export interface MembershipPlan {
   tier_name: string;
   billing_cycle: string;
   price: string;
-  booking_daily_limit: number;
+  daily_free_quota: number;
+  max_daily_bookings: number | null;
   booking_advance_days: number;
   status: string;
 }

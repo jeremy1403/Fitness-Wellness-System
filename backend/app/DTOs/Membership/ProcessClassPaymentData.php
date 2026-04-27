@@ -12,7 +12,7 @@ final class ProcessClassPaymentData
 {
     public function __construct(
         public readonly int     $userId,
-        public readonly int     $bookingId,
+        public readonly int     $scheduleId,
         public readonly float   $amount,
         public readonly string  $method,
         public readonly ?string $promoCode = null,

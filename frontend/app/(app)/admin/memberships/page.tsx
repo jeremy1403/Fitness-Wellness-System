@@ -49,7 +49,8 @@ const emptyForm = {
   tier_name: "basic",
   billing_cycle: "monthly",
   price: "",
-  booking_daily_limit: "",
+  daily_free_quota: "",
+  max_daily_bookings: "",
   booking_advance_days: "",
   status: "active",
 };
@@ -119,7 +120,8 @@ export default function AdminMembershipsPage() {
       tier_name: plan.tier_name,
       billing_cycle: plan.billing_cycle,
       price: plan.price,
-      booking_daily_limit: String(plan.booking_daily_limit),
+      daily_free_quota: String(plan.daily_free_quota),
+      max_daily_bookings: plan.max_daily_bookings ? String(plan.max_daily_bookings) : "",
       booking_advance_days: String(plan.booking_advance_days),
       status: plan.status,
     });
@@ -135,7 +137,8 @@ export default function AdminMembershipsPage() {
         tier_name: form.tier_name,
         billing_cycle: form.billing_cycle,
         price: form.price,
-        booking_daily_limit: parseInt(form.booking_daily_limit),
+        daily_free_quota: parseInt(form.daily_free_quota),
+        max_daily_bookings: form.max_daily_bookings ? parseInt(form.max_daily_bookings) : null,
         booking_advance_days: parseInt(form.booking_advance_days),
         status: form.status,
       };
@@ -229,7 +232,8 @@ export default function AdminMembershipsPage() {
                   <TableHead>Tier</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Billing Cycle</TableHead>
-                  <TableHead>Daily Limit</TableHead>
+                  <TableHead>Free Quota</TableHead>
+                  <TableHead>Max Bookings</TableHead>
                   <TableHead>Advance Days</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
@@ -241,7 +245,8 @@ export default function AdminMembershipsPage() {
                     <TableCell className="font-medium text-slate-900 capitalize">{plan.tier_name}</TableCell>
                     <TableCell className="text-slate-500">RM {plan.price}</TableCell>
                     <TableCell className="text-slate-500 capitalize">{plan.billing_cycle}</TableCell>
-                    <TableCell className="text-slate-500">{plan.booking_daily_limit} bookings/day</TableCell>
+                    <TableCell className="text-slate-500">{plan.daily_free_quota} free/day</TableCell>
+                    <TableCell className="text-slate-500">{plan.max_daily_bookings ? `${plan.max_daily_bookings} total/day` : 'Unlimited'}</TableCell>
                     <TableCell className="text-slate-500">{plan.booking_advance_days} days ahead</TableCell>
                     <TableCell>
                       <Badge className={plan.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}>
@@ -292,6 +297,7 @@ export default function AdminMembershipsPage() {
                   <SelectValue placeholder="Select Tier" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="free">Free</SelectItem>
                   <SelectItem value="basic">Basic</SelectItem>
                   <SelectItem value="premium">Premium</SelectItem>
                 </SelectContent>
@@ -315,8 +321,12 @@ export default function AdminMembershipsPage() {
               <Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="e.g. 29.99" />
             </div>
             <div className="flex flex-col gap-1">
-              <Label>Daily Booking Limit</Label>
-              <Input type="number" value={form.booking_daily_limit} onChange={(e) => setForm({ ...form, booking_daily_limit: e.target.value })} placeholder="e.g. 1" />
+              <Label>Daily Free Quota</Label>
+              <Input type="number" value={form.daily_free_quota} onChange={(e) => setForm({ ...form, daily_free_quota: e.target.value })} placeholder="e.g. 1" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label>Max Daily Bookings</Label>
+              <Input type="number" value={form.max_daily_bookings} onChange={(e) => setForm({ ...form, max_daily_bookings: e.target.value })} placeholder="e.g. 2 (Leave blank for unlimited)" />
             </div>
             <div className="flex flex-col gap-1">
               <Label>Advance Booking Days</Label>

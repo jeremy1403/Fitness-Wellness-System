@@ -149,7 +149,8 @@ class MembershipController extends Controller
             'tier_name'            => 'required|string|in:basic,premium',
             'billing_cycle'        => 'required|string|in:monthly,biannually,annually',
             'price'                => 'required|numeric|min:0',
-            'booking_daily_limit'  => 'required|integer|min:1',
+            'daily_free_quota'     => 'required|integer|min:0',
+            'max_daily_bookings'   => 'nullable|integer|min:1',
             'booking_advance_days' => 'required|integer|min:1',
             'status'               => 'sometimes|string|in:active,inactive',
         ]);
@@ -159,7 +160,8 @@ class MembershipController extends Controller
                 tierName:           $request->tier_name,
                 billingCycle:       $request->billing_cycle,
                 price:              $request->price,
-                bookingDailyLimit:  $request->booking_daily_limit,
+                dailyFreeQuota:     $request->daily_free_quota,
+                maxDailyBookings:   $request->max_daily_bookings,
                 bookingAdvanceDays: $request->booking_advance_days,
                 status:             $request->status ?? 'active',
             )
@@ -178,7 +180,8 @@ class MembershipController extends Controller
             'tier_name'            => 'required|string|in:basic,premium',
             'billing_cycle'        => 'required|string|in:monthly,biannually,annually',
             'price'                => 'required|numeric|min:0',
-            'booking_daily_limit'  => 'required|integer|min:1',
+            'daily_free_quota'     => 'required|integer|min:0',
+            'max_daily_bookings'   => 'nullable|integer|min:1',
             'booking_advance_days' => 'required|integer|min:1',
             'status'               => 'sometimes|string|in:active,inactive',
         ]);
@@ -189,7 +192,8 @@ class MembershipController extends Controller
                 tierName:           $request->tier_name,
                 billingCycle:       $request->billing_cycle,
                 price:              $request->price,
-                bookingDailyLimit:  $request->booking_daily_limit,
+                dailyFreeQuota:     $request->daily_free_quota,
+                maxDailyBookings:   $request->max_daily_bookings,
                 bookingAdvanceDays: $request->booking_advance_days,
                 status:             $request->status ?? 'active',
             )
