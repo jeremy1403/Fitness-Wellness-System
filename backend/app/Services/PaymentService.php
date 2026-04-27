@@ -204,7 +204,9 @@ class PaymentService
         }
 
         // ── Anti-tamper: verify paid amount >= class list price (before discount) ───────────────
-        $classPrice = BookingService::FLAT_CLASS_RATE;
+        $minutes = \Carbon\Carbon::parse($booking->classSchedule->start_datetime)
+            ->diffInMinutes(\Carbon\Carbon::parse($booking->classSchedule->end_datetime));
+        $classPrice = ceil($minutes / 5) * 3;
 
         if ($data->amount < $classPrice) {
             throw new \Exception(

@@ -18,7 +18,6 @@ class BookingService
         private readonly MembershipService          $membershipService,
     ) {}
 
-    public const FLAT_CLASS_RATE = 10.00;
 
     // =========================================================================
     // CORE: Daily Quota + Pay-Per-Class Decision Engine
@@ -82,7 +81,9 @@ class BookingService
         $todayBookings  = $this->bookingRepository->countActiveBookingsForDate($user->id, $classDate);
 
         // ── 7. Decision Engine ────────────────────────────────────────────────
-        $classPrice = self::FLAT_CLASS_RATE;
+        $minutes = \Carbon\Carbon::parse($schedule->start_datetime)
+            ->diffInMinutes(\Carbon\Carbon::parse($schedule->end_datetime));
+        $classPrice = ceil($minutes / 5) * 3;
 
         if ($dailyQuota > 0 && $todayBookings < $dailyQuota) {
             // ✅ Quota available — book for free
