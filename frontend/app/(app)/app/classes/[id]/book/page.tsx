@@ -139,7 +139,11 @@ function ClassBookingContent() {
 
   const start = formatDisplayDate(schedule.start_datetime);
   const end = formatDisplayDate(schedule.end_datetime);
-  const numericPrice = 10.00; // Flat RM 10.00 rate
+
+  const startObj = new Date(schedule.start_datetime);
+  const endObj = new Date(schedule.end_datetime);
+  const durationInMinutes = (endObj.getTime() - startObj.getTime()) / (1000 * 60);
+  const numericPrice = Math.ceil(durationInMinutes / 5) * 3;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-400 p-4">

@@ -542,6 +542,11 @@ function SchedulesContent() {
           const end = formatDisplayDate(item.end_datetime);
           const isExpanded = expandedScheduleId === item.id;
 
+          const startObj = new Date(item.start_datetime);
+          const endObj = new Date(item.end_datetime);
+          const durationInMinutes = (endObj.getTime() - startObj.getTime()) / (1000 * 60);
+          const dynamicPrice = Math.ceil(durationInMinutes / 5) * 3;
+
           return (
             <div key={item.id} className="group relative rounded-3xl bg-white border border-slate-100 shadow-sm hover:border-blue-200 hover:shadow-md transition-all duration-300">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6">
@@ -583,7 +588,7 @@ function SchedulesContent() {
                   {primaryRole === "member" && (
                     <BookNowButton
                       scheduleId={item.id}
-                      classPrice={item.fitness_class?.price ?? 0}
+                      classPrice={dynamicPrice}
                       classId={item.fitness_class?.id}
                     />
                   )}
