@@ -18,7 +18,7 @@ export default function AdminCreateSchedulePage() {
   const [scheduleList, setScheduleList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // --- 表单状态 ---
+  // Form Status
   const [classId, setClassId] = useState("");
   const [trainerId, setTrainerId] = useState("");
   const [startTime, setStartTime] = useState("");
@@ -29,10 +29,10 @@ export default function AdminCreateSchedulePage() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
-  // --- 编辑状态 ---
+  // Editing status
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  // 1. 初始化数据
+ 
   const loadInitialData = async () => {
     try {
       setLoading(true);
@@ -53,7 +53,6 @@ export default function AdminCreateSchedulePage() {
 
   useEffect(() => { loadInitialData(); }, []);
 
-  // 2. 自动化策略
   useEffect(() => {
     const selectedClass = classes.find(c => String(c.id) === String(classId));
     if (selectedClass && startTime) {
@@ -65,13 +64,13 @@ export default function AdminCreateSchedulePage() {
     }
   }, [classId, startTime, classes]);
 
-  // --- 【核心修复：格式化显示】 ---
+  // Formatted Display for date 
   const formatDisplayDate = (dateStr: string) => {
     if (!dateStr) return { date: "N/A", time: "" };
     const dateObj = new Date(dateStr);
     if (isNaN(dateObj.getTime())) return { date: dateStr, time: "" };
     
-    // 强制使用 UTC 方法读取，因为后端返回的数据带 "Z"
+   
     const hours = String(dateObj.getUTCHours()).padStart(2, '0');
     const minutes = String(dateObj.getUTCMinutes()).padStart(2, '0');
 
@@ -86,7 +85,7 @@ export default function AdminCreateSchedulePage() {
     };
   };
 
-  // --- 【核心修复：点击编辑时的数据回显】 ---
+  //date display when edited
   const startEdit = (item: any) => {
     setEditingId(item.id);
     setClassId(String(item.fitness_class_id));
@@ -98,7 +97,6 @@ export default function AdminCreateSchedulePage() {
       const d = new Date(str);
       if (isNaN(d.getTime())) return "";
 
-      // 既然带 Z，就用 UTC 方法提取数字拼给 datetime-local input
       const Y = d.getUTCFullYear();
       const M = String(d.getUTCMonth() + 1).padStart(2, '0');
       const D = String(d.getUTCDate()).padStart(2, '0');
@@ -246,7 +244,7 @@ export default function AdminCreateSchedulePage() {
         </section>
       </form>
 
-      {/* 列表渲染部分 */}
+      {/* list section */}
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-900 mb-4">Upcoming Schedules</h2>
         <div className="overflow-x-auto">

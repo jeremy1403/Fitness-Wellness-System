@@ -10,7 +10,7 @@ export interface FitnessClassData {
   class_type?: 'Yoga' | 'Spin' | 'HIIT' | 'General';
 }
 
-// 获取列表 (Read)
+// Read
 export const getFitnessClasses = async () => {
   const url = backendUrl("/classes");
   const response = await fetch(url, {
@@ -21,7 +21,7 @@ export const getFitnessClasses = async () => {
   return await response.json();
 };
 
-// 创建课程 (Create)
+// Create
 export const createFitnessClass = async (data: FitnessClassData) => {
   const url = backendUrl("/classes");
   const response = await fetch(url, {
@@ -36,7 +36,7 @@ export const createFitnessClass = async (data: FitnessClassData) => {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw { response: { data: errorData, status: response.status } }; // 包装成兼容 error.response 的格式
+    throw { response: { data: errorData, status: response.status } }; 
   }
   return await response.json();
 };
@@ -61,7 +61,7 @@ export const updateFitnessClass = async (id: number, data: FitnessClassData) => 
   return await response.json();
 };
 
-// 删除课程 (Delete)
+// Delete
 export const deleteFitnessClass = async (id: number) => {
   const url = backendUrl(`/classes/${id}`);
   const response = await fetch(url, {

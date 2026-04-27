@@ -7,7 +7,6 @@ import {
   deleteFitnessClass, 
   updateFitnessClass 
 } from "@/lib/api/classes.api";
-// 注意：你需要确保有获取所有 schedules 的 API 方法
 import { getSchedules } from "@/lib/api/schedules.api"; 
 import { useAuth } from "@/lib/auth/context";
 import Link from "next/link";
@@ -18,12 +17,12 @@ type ClassType = "Yoga" | "Spin" | "HIIT" | "General";
 export default function UserClassesPage() {
   const { primaryRole, user } = useAuth();
   
-  // 数据状态
+  // data status
   const [classList, setClassList] = useState<any[]>([]);
-  const [scheduleList, setScheduleList] = useState<any[]>([]); // 存放排期数据
+  const [scheduleList, setScheduleList] = useState<any[]>([]); // Store scheduling data
   const [loading, setLoading] = useState(true);
   
-  // 表单状态 (Trainer专用)
+  // Form Status (Trainer Only)
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [durationMinutes, setDurationMinutes] = useState(60);
@@ -34,7 +33,6 @@ export default function UserClassesPage() {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  // 自动时长策略
   const getAutoDuration = () => {
     const rules: Record<ClassType, number> = {
       'Yoga': 60, 'Spin': 45, 'HIIT': 30, 'General': 60
@@ -43,17 +41,15 @@ export default function UserClassesPage() {
   };
 
 
-  // 同时加载 Classes 和 Schedules
+  //Load Classes and Schedules simultaneously
     const loadData = async () => {
       try {
         setLoading(true);
-        // 并发请求，提高加载速度
         const [classesRes, schedulesRes] = await Promise.all([
           getFitnessClasses(),
           getSchedules() 
         ]);
         
-        // 修复 TypeScript 报错：先检查是否已经是数组，如果不是再尝试取 .data
         const finalClasses = Array.isArray(classesRes) ? classesRes : (classesRes as any)?.data || [];
         const finalSchedules = Array.isArray(schedulesRes) ? schedulesRes : (schedulesRes as any)?.data || [];
 
@@ -68,31 +64,31 @@ export default function UserClassesPage() {
 
   useEffect(() => { loadData(); }, []);
 
-  // --- 核心逻辑：获取某个 Class 的排期统计和最新排期 ---
+  // Retrieve scheduling statistics and the latest scheduling for a specific class
   const getClassStats = (classId: number) => {
-    // 1. 找到该课程下所有状态为 open 的排期
+    // 1. Locate all available slots for this course that are currently available.
     const relatedSchedules = scheduleList.filter(
       (s) => s.fitness_class_id === classId && s.status === 'open'
     );
     
-    // 2. 过滤出未来的课程（当前时间之后的）
+    // 2.Filter out future courses (after the current time).
     const now = new Date().getTime();
     const upcomingSchedules = relatedSchedules.filter(
       (s) => new Date(s.start_datetime).getTime() >= now
     );
 
-    // 3. 按时间先后排序，最先开始的排在前面
+    // 3.earliest entries first
     upcomingSchedules.sort((a, b) => 
       new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime()
     );
 
     return {
-      count: relatedSchedules.length, // 总共有多少个不同时间的排期
-      latest: upcomingSchedules[0] || null // 最接近的下一次课程
+      count: relatedSchedules.length, // How many different time slots are there in total?
+      latest: upcomingSchedules[0] || null // The closest next class
     };
   };
 
-  // --- Trainer 操作函数 ---
+  // --- Trainer action ---
   const startEdit = (cls: any) => {
     setEditingId(cls.id);
     setName(cls.title);
@@ -147,7 +143,7 @@ export default function UserClassesPage() {
       }
 
       cancelEdit();
-      await loadData(); // 重新加载数据
+      await loadData(); 
     } catch (e: any) {
       setError(e.response?.data?.message || "Operation failed.");
     } finally {
@@ -163,10 +159,9 @@ export default function UserClassesPage() {
     } catch (e) { alert("Delete failed."); }
   };
 
-  // --- 渲染部分 ---
   return (
     <div className="flex flex-col gap-6">
-      {/* 顶部标题栏 */}
+      {/* top title */}
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">
@@ -183,7 +178,7 @@ export default function UserClassesPage() {
         </Link>
       </div>
 
-      {/* Trainer 表单区 */}
+      {/* Trainer form area */}
       {primaryRole === "trainer" && (
         <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-3 animate-in fade-in duration-500">
           <section className="rounded-3xl border border-slate-200 bg-white p-6 lg:col-span-2 shadow-sm">
@@ -263,7 +258,7 @@ export default function UserClassesPage() {
         </form>
       )}
 
-      {/* 课程目录列表区 */}
+      {/* Course Catalog List Area */}
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold mb-6 text-slate-900">
           {primaryRole === 'trainer' ? "Existing Class Catalog" : "Available Classes"}
@@ -276,17 +271,17 @@ export default function UserClassesPage() {
             <p className="col-span-full py-10 text-center text-slate-400">No classes found.</p>
           ) : classList.map((cls) => {
             
-            // 权限验证
+            // Permission verification
             if (primaryRole !== 'trainer' && cls.status === 'inactive') return null;
             if (primaryRole === 'trainer' && cls.created_by !== user?.id && cls.created_by !== 1) return null;
 
-            // 获取该课程的排期统计数据
+            // Get the course scheduling statistics
             const stats = getClassStats(cls.id);
 
             return (
               <div key={cls.id} className="p-6 border border-slate-100 rounded-3xl bg-slate-50 group hover:bg-white hover:border-slate-300 transition-all relative flex flex-col justify-between">
 
-                {/* Trainer 操作按钮 */}
+                {/* Trainer btn */}
                 {primaryRole === "trainer" && (
                   <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => startEdit(cls)} className="p-2 bg-white text-blue-600 rounded-xl shadow-sm border border-slate-100 hover:bg-blue-50">
@@ -298,7 +293,7 @@ export default function UserClassesPage() {
                   </div>
                 )}
 
-                {/* 课程基本信息 */}
+                {/* Basic Course Information */}
                 <div>
                   <h3 className="mt-3 text-xl font-bold text-slate-800 pr-16">{cls.title}</h3>
                   <div className="flex items-center gap-2 mt-1">
@@ -324,7 +319,7 @@ export default function UserClassesPage() {
                     </div>
                   )}
 
-                  {/* 排期统计信息展示面板 */}
+                  {/* schedule display panel */}
                   <div className="mt-6 bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
                     <div className="flex items-center justify-between">
                       <div>
@@ -335,7 +330,7 @@ export default function UserClassesPage() {
                       </div>
                     </div>
                     
-                    {/* 显示最近的 schedule */}
+                    {/* lastest schedule */}
                     <div className="mt-3 pt-3 border-t border-slate-100">
                       <p className="text-[10px] font-bold text-slate-400 uppercase">Next Session</p>
                       {stats.latest ? (
@@ -349,7 +344,6 @@ export default function UserClassesPage() {
                   </div>
                 </div>
 
-               {/* 跳转按钮：带着 classId 跳转到 schedule 页面 */}
                 <Link 
                   href={`/app/schedules?classId=${cls.id}`} 
                   className="mt-6 block w-full text-center rounded-2xl bg-white border border-slate-900 py-3 text-sm font-bold text-slate-900 hover:bg-slate-900 hover:text-white transition-all shadow-sm"

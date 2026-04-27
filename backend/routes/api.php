@@ -22,16 +22,21 @@ Route::prefix('v1')->group(function () {
 
     // Module 1: Auth & User Management
     Route::prefix('auth')->group(base_path('routes/api/auth.php'));
-
+    
+    // Module 2: Classes & Schedule Management
+    // Apply Rate Limiting (60 requests/min) for DDoS mitigation
     Route::middleware('throttle:60,1')->group(function () {
+        // CRUD api for classes
         Route::apiResource('classes', FitnessClassController::class);
+
+        // Manage Schedules
         Route::get('schedules', [ClassScheduleController::class, 'index'])
             ->middleware(['provider:getAllSchedules', 'consumer'])
             ->name('schedules.index');
 
         Route::apiResource('schedules', ClassScheduleController::class)
             ->except(['index']);
-
+        //Retrieve a list of all coaches where status active return only key information such as name and specialty.
         Route::get('trainers', function () {
             return \App\Models\Trainer::with('user')
                 ->where('status', 'active')

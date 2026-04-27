@@ -13,7 +13,7 @@ export default function AdminCreateClassPage() {
   const [classList, setClassList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // --- 表单状态 ---
+  // form status
   const [name, setName] = useState("");
   const { primaryRole, user } = useAuth();
   const [description, setDescription] = useState("");
@@ -24,7 +24,6 @@ export default function AdminCreateClassPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // --- 编辑状态 ---
   const [editingId, setEditingId] = useState<number | null>(null);
 
   const getAutoDuration = () => {
@@ -48,18 +47,17 @@ export default function AdminCreateClassPage() {
 
   useEffect(() => { loadClasses(); }, []);
 
-  // --- 核心：进入编辑模式 ---
+  // Entering Edit Mode
   const startEdit = (cls: any) => {
     setEditingId(cls.id);
     setName(cls.title);
     setDescription(cls.description || "");
     setDurationMinutes(cls.duration_minutes);
     setStatus(cls.status);
-    // 注意：确保后端返回了这些字段
     setSetupMode(cls.setup_mode || "automated");
     setClassType(cls.class_type || "Yoga");
     
-    // 滚回顶部
+    // back to the top
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -71,50 +69,12 @@ export default function AdminCreateClassPage() {
     setError(null);
   };
 
-  // const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-  //   event.preventDefault();
-  //   setError(null);
-
-  //   if (setupMode === 'simple' && durationMinutes < 15) {
-  //     setError("Wait! The duration must be at least 15 minutes.");
-  //     return; 
-  //   }
-
-  //   setSubmitting(true);
-  //   try {
-  //     const payload = {
-  //       title: name,
-  //       description: description,
-  //       duration_minutes: setupMode === 'simple' ? durationMinutes : getAutoDuration(),
-  //       status: status,
-  //       //setup_mode: setupMode,
-  //       //class_type: classType,
-  //     };
-
-  //     if (editingId) {
-  //       // 使用封装好的 api 函数
-  //       await updateFitnessClass(editingId, payload);
-  //       alert("Updated successfully!");
-  //   } else {
-  //     await createFitnessClass(payload);
-  //     alert("Created successfully!");
-  //   }
-
-  //     cancelEdit(); // 重置表单
-  //     await loadClasses(); 
-  //   } catch (e: any) { 
-  //     const msg = e.response?.data?.message || "Operation failed.";
-  //     setError(msg);
-  //   } finally { 
-  //     setSubmitting(false); 
-  //   }
-  // };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
 
-    // 前端验证：手动模式下时长不能小于 15
+    // In manual mode, the duration must not be less than 15 seconds.
     if (setupMode === 'simple' && durationMinutes < 15) {
       setError("The duration must be at least 15 minutes.");
       return; 
@@ -133,19 +93,19 @@ export default function AdminCreateClassPage() {
       };
 
       if (editingId) {
-        // --- 编辑逻辑：调用封装好的 updateFitnessClass ---
+        //Call the encapsulated updateFitnessClass
         await updateFitnessClass(editingId, payload);
         alert("Updated successfully!");
       } else {
-        // --- 创建逻辑 ---
+
         await createFitnessClass(payload);
         alert("Created successfully!");
       }
 
-      cancelEdit(); // 成功后重置表单并清空 editingId
-      await loadClasses(); // 刷新列表
+      cancelEdit(); // Reset the form and clear the editingId upon success
+      await loadClasses(); 
     } catch (e: any) { 
-      // 这里的 e.response.data.message 来自于你在 api.ts 里的包装
+      
       const msg = e.response?.data?.message || "Operation failed.";
       setError(msg);
     } finally { 
@@ -264,7 +224,7 @@ export default function AdminCreateClassPage() {
                 </div>
               </div>
               <div className="flex gap-1">
-                {/* 编辑按钮 */}
+                {/* Edit button */}
                 <button 
                   onClick={() => startEdit(cls)}
                   className="text-blue-400 hover:text-blue-600 p-2 hover:bg-blue-50 rounded-xl transition-colors"
@@ -272,7 +232,7 @@ export default function AdminCreateClassPage() {
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
-                {/* 删除按钮 */}
+                {/* Delete button */}
                 <button 
                   onClick={() => handleDelete(cls.id)}
                   className="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-xl transition-colors"

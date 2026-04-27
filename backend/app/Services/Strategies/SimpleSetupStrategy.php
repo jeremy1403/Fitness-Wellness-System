@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Log;
 
 class SimpleSetupStrategy implements ClassSetupStrategyInterface
 {
-    //processing logic for the "standard package".
+    //processing logic for the standard package.
     public function setup(FitnessClass $fitnessClass, array $data): void
     {
        

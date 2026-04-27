@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation"; // 用于获取 URL 上的 classId
+import { useSearchParams } from "next/navigation"; 
 import { useAuth } from "@/lib/auth/context"; 
 import { getFitnessClasses } from "@/lib/api/classes.api";
 import { 
@@ -247,11 +247,11 @@ function BookNowButton({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-// --- 核心内容组件 ---
+
 function SchedulesContent() {
   const { primaryRole, user } = useAuth(); 
   const searchParams = useSearchParams();
-  const filterClassId = searchParams.get("classId"); // 获取从 Class 页面传来的参数
+  const filterClassId = searchParams.get("classId"); 
 
   const [classes, setClasses] = useState<any[]>([]);
   const [trainers, setTrainers] = useState<any[]>([]);
@@ -281,7 +281,6 @@ function SchedulesContent() {
         getSchedules()
       ]);
       
-      // 修复 TypeScript 'data' 报错
       setClasses(Array.isArray(classesData) ? classesData : (classesData as any)?.data || []);
       setTrainers(Array.isArray(trainersData) ? trainersData : (trainersData as any)?.data || []);
       setScheduleList(Array.isArray(schedulesData) ? schedulesData : (schedulesData as any)?.data || []);
@@ -322,20 +321,11 @@ function SchedulesContent() {
     return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   };
 
-  // const formatDisplayDate = (dateStr: string) => {
-  //   const d = new Date(dateStr);
-  //   return {
-  //     date: d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }),
-  //     time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  //   };
-  // };
   const formatDisplayDate = (dateStr: string) => {
     if (!dateStr) return { date: "", time: "" };
 
-    // 解析后端返回的 ISO 字符串
     const d = new Date(dateStr);
     
-    // 关键：如果你想无视时区转换，直接显示 UTC 时间的数字部分：
     const hours = String(d.getUTCHours()).padStart(2, '0');
     const minutes = String(d.getUTCMinutes()).padStart(2, '0');
     
@@ -344,7 +334,7 @@ function SchedulesContent() {
         weekday: 'short', 
         month: 'short', 
         day: 'numeric',
-        timeZone: 'UTC' // 强制日期也按 UTC 显示，防止跳天
+        timeZone: 'UTC' 
       }),
       time: `${hours}:${minutes}`
     };
@@ -411,25 +401,24 @@ function SchedulesContent() {
     setExpandedScheduleId((prev) => (prev === id ? null : id));
   };
 
-  // --- 重点：数据过滤与排序 ---
+  // --- Data filtering and sorting ---
   const now = new Date().getTime();
   const displaySchedules = scheduleList
     .filter((item) => {
-      // 1. 如果课程未激活，不显示
+      // 1. If the course is not activated, it will not be displayed.
       if (item.fitness_class?.status !== 'active') return false;
       
-      // 2. 过滤掉过去的排期（只显示未来）
+      // 2. Filter out past scheduling dates (only display future ones).
       if (new Date(item.start_datetime).getTime() < now) return false;
 
-      // 3. 如果 URL 里有 classId，只显示对应课程的排期
+      // 3. If the URL contains a classId, only the schedule for the corresponding course will be displayed.
       if (filterClassId && String(item.fitness_class_id) !== filterClassId) {
         return false;
       }
 
-      // 4. 【新增逻辑】：如果是 Trainer，只显示分配给自己的排期
+      // 4. If you are a Trainer, only the schedule assigned to you will be displayed.
       if (primaryRole === 'trainer') {
         const myTrainerProfile = trainers.find(t => t.name === user?.name);
-        // 如果这节课的教练ID，不是当前登录教练的ID，就隐藏掉
         if (myTrainerProfile && String(item.trainer_id) !== String(myTrainerProfile.id)) {
           return false; 
         }
@@ -437,7 +426,7 @@ function SchedulesContent() {
       
       return true;
     })
-    .sort((a, b) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime()); // 按时间升序排序
+    .sort((a, b) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime());
 
   return (
     <div className="flex flex-col gap-6 max-w-6xl mx-auto p-4">
@@ -536,7 +525,7 @@ function SchedulesContent() {
         </form>
       )}
 
-      {/* --- Schedule List (已应用过滤和排序) --- */}
+      {/*Schedule List*/}
       <div className="flex flex-col gap-4">
         {loading ? (
           <div className="text-center py-10 text-slate-400">Loading schedules...</div>
@@ -632,7 +621,7 @@ function SchedulesContent() {
   );
 }
 
-// --- Next.js 页面入口：包装 Suspense 以支持 useSearchParams ---
+
 export default function UserSchedulesPage() {
   return (
     <Suspense fallback={<div className="p-10 text-center text-slate-500">Loading page...</div>}>

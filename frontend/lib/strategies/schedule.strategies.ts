@@ -8,14 +8,14 @@ export class AutomatedScheduleStrategy implements ScheduleStrategy {
   calculateEndTime(startTime: string, durationMinutes: number): string {
     if (!startTime || !durationMinutes) return "";
 
-    // startTime 通常是 "2026-04-20T18:45" (来自 datetime-local input)
+    // came from datetime-local input
     const start = new Date(startTime);
     if (isNaN(start.getTime())) return "";
 
-    // 计算结束时间
+    // Calculate end time
     const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
     
-    // 手动拼接，不使用 toISOString()，这样可以保持“所见即所得”
+    
     const year = end.getFullYear();
     const month = String(end.getMonth() + 1).padStart(2, '0');
     const day = String(end.getDate()).padStart(2, '0');
@@ -28,7 +28,7 @@ export class AutomatedScheduleStrategy implements ScheduleStrategy {
 
 export class SimpleScheduleStrategy implements ScheduleStrategy {
   calculateEndTime(): string {
-    return ""; // 手动模式，不自动填充
+    return "";
   }
 }
 

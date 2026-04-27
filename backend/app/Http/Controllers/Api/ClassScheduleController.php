@@ -26,7 +26,6 @@ class ClassScheduleController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            // 验证课程 ID，改为：同一教练在【同一时间】不能排【同一门课】
             'fitness_class_id' => [
                 'required',
                 'exists:fitness_classes,id',
@@ -41,12 +40,11 @@ class ClassScheduleController extends Controller
             'end_datetime'   => 'required|date|after:start_datetime',
             'capacity'         => 'required|integer|min:1|max:30',
         ], [
-            // 报错信息也要改一下
+            
             'fitness_class_id.unique' => 'You already have this class scheduled at this exact time!',
             'start_datetime.after' => 'The start time cannot be in the past.',
         ]);
 
-        // 现在的 $validated 包含了所有字段，包括 trainer_id
         $schedule = ClassSchedule::create($validated);
 
         return response()->json([

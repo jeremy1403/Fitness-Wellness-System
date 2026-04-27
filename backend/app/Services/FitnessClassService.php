@@ -19,7 +19,6 @@ class FitnessClassService
         $user = Auth::user();
 
         if (!$user) {
-            // If you are not logged in, return all or process according 
             return FitnessClass::all(); 
         }
 
@@ -45,7 +44,7 @@ class FitnessClassService
     public function createClass(array $data)
     {
         return DB::transaction(function () use ($data) {
-            // 1. Create the base record first
+            // Create the base record first
             // Use a fallback for duration_minutes so the DB doesn't crash if it's missing
             $fitnessClass = $this->repository->create([
                 'title' => $data['title'],
