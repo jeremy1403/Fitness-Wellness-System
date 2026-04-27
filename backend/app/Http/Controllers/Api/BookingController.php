@@ -32,15 +32,34 @@ class BookingController extends Controller
         ]);
 
         try {
-            $booking = $this->bookingService->createBooking(
+            $result = $this->bookingService->createBooking(
                 $request->user(),
                 $request->class_schedule_id
             );
 
+            $bookingData = new BookingResource(
+                $result->booking->load('classSchedule.fitnessClass')
+            );
+
+            // ── Quota consumed: booking is fully confirmed ────────────────────
+            if (!$result->requiresPayment) {
+                return response()->json([
+                    'status'  => 'confirmed',
+                    'message' => 'Booked using your daily quota!',
+                    'data'    => $bookingData,
+                ], 201);
+            }
+
+            // ── Payment required: seat reserved, awaiting checkout ────────────
             return response()->json([
-                'message' => 'Booking successful',
-                'data'    => new BookingResource($booking->load('classSchedule.fitnessClass')),
-            ], 201);
+                'status'          => 'pending_payment',
+                'message'         => 'Class booked! Please complete payment to confirm your spot.',
+                'requires_payment' => true,
+                'booking_id'      => $result->booking->id,
+                'class_price'     => $result->classPrice,
+                'data'            => $bookingData,
+            ], 202);
+
         } catch (\Exception $e) {
             return response()->json([
                 'message' => $e->getMessage(),

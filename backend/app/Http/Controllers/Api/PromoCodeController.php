@@ -109,7 +109,7 @@ class PromoCodeController extends Controller
     public function index(Request $request)
     {
         $sort = $request->query('sort', 'newest');
-        return response()->json($this->promoRepository->getSorted($sort));
+        return response()->json($this->promoRepository->getSorted($sort)->load('targetUsers'));
     }
 
 
@@ -120,8 +120,8 @@ class PromoCodeController extends Controller
      */
     public function available(Request $request)
     {
-        // Eager-load the required plan in one query (single JOIN, not N+1)
-        $promos = \App\Models\PromoCode::with('requiredPlan')->get();
+        // Eager-load not needed for requiredPlan anymore since we dropped it
+        $promos = \App\Models\PromoCode::all();
         $userId = optional($request->user())->id;
 
         // If authenticated, pre-fetch the user's active membership plan_id
@@ -142,9 +142,9 @@ class PromoCodeController extends Controller
                 : false;
 
             // Tier restriction metadata
-            $arr['required_plan_name'] = $promo->requiredPlan?->name;
-            $arr['user_meets_tier_requirement'] = $promo->required_plan_id === null
-                || ($userPlanId !== null && $userPlanId == $promo->required_plan_id);
+            $arr['required_tier_name'] = $promo->required_tier;
+            $arr['user_meets_tier_requirement'] = $promo->required_tier === null
+                || ($userPlanId !== null && \App\Models\MembershipPlan::find($userPlanId)?->tier_name === $promo->required_tier);
 
             return $arr;
         });
@@ -170,18 +170,29 @@ class PromoCodeController extends Controller
                 $isPercentage ? 'max:100' : 'max:999999',
             ],
             'max_discount_amount' => 'nullable|numeric|min:0',
+            'min_spend_amount' => 'nullable|numeric|min:0',
             'is_new_user_only' => 'sometimes|boolean',
+            'is_targeted'      => 'sometimes|boolean',
             'is_active'        => 'nullable|boolean',
             'max_uses'         => 'nullable|integer|min:1',
             'expires_at'       => 'nullable|date|after:today',
-            'required_plan_id' => 'nullable|integer|exists:membership_plans,id',
+            'required_tier'    => 'nullable|string|in:basic,premium',
+            'target_user_ids'  => 'nullable|array',
+            'target_user_ids.*'=> 'integer|exists:users,id',
         ], [
             'discount_amount.max' => $isPercentage
                 ? 'A percentage discount cannot exceed 100%.'
                 : 'Fixed discount amount is too large.',
         ]);
 
-        $promoCode = $this->promoRepository->create($validated);
+        $validated['code'] = strtoupper(trim($validated['code']));
+
+        $promoCode = $this->promoRepository->create(\Illuminate\Support\Arr::except($validated, ['target_user_ids']));
+
+        if (!empty($validated['is_targeted']) && !empty($validated['target_user_ids'])) {
+            $promoCode->targetUsers()->sync($validated['target_user_ids']);
+        }
+
         return response()->json($promoCode, 201);
     }
 
@@ -213,18 +224,33 @@ class PromoCodeController extends Controller
                 $isPercentage ? 'max:100' : 'max:999999',
             ],
             'max_discount_amount' => 'nullable|numeric|min:0',
+            'min_spend_amount' => 'nullable|numeric|min:0',
             'is_new_user_only' => 'sometimes|boolean',
+            'is_targeted'      => 'sometimes|boolean',
             'is_active'        => 'nullable|boolean',
             'max_uses'         => 'nullable|integer|min:1',
             'expires_at'       => 'nullable|date|after:today',
-            'required_plan_id' => 'nullable|integer|exists:membership_plans,id',
+            'required_tier'    => 'nullable|string|in:basic,premium',
+            'target_user_ids'  => 'nullable|array',
+            'target_user_ids.*'=> 'integer|exists:users,id',
         ], [
             'discount_amount.max' => $isPercentage
                 ? 'A percentage discount cannot exceed 100%.'
                 : 'Fixed discount amount is too large.',
         ]);
 
-        $promoCode = $this->promoRepository->update($id, $validated);
+        if (isset($validated['code'])) {
+            $validated['code'] = strtoupper(trim($validated['code']));
+        }
+
+        $promoCode = $this->promoRepository->update($id, \Illuminate\Support\Arr::except($validated, ['target_user_ids']));
+
+        if (isset($validated['is_targeted']) && $validated['is_targeted']) {
+            $promoCode->targetUsers()->sync($validated['target_user_ids'] ?? []);
+        } elseif (isset($validated['is_targeted']) && !$validated['is_targeted']) {
+            $promoCode->targetUsers()->sync([]);
+        }
+
         return response()->json($promoCode);
     }
 

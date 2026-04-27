@@ -12,6 +12,7 @@ class BookingResource extends JsonResource
         return [
             'id'           => $this->id,
             'status'       => $this->status,
+            'is_quota_used'=> (bool) $this->is_quota_used,
             'booked_at'    => $this->booked_at?->toIso8601String(),
             'cancelled_at' => $this->cancelled_at?->toIso8601String(),
             'class_schedule' => $this->whenLoaded('classSchedule', fn() => [
@@ -20,6 +21,9 @@ class BookingResource extends JsonResource
                 'end_datetime'   => $this->classSchedule->end_datetime?->toIso8601String(),
                 'capacity'       => $this->classSchedule->capacity,
                 'status'         => $this->classSchedule->status,
+                'trainer_name'   => $this->classSchedule->relationLoaded('trainer') && $this->classSchedule->trainer->relationLoaded('user')
+                    ? ($this->classSchedule->trainer->user->name ?? 'TBA')
+                    : 'TBA',
                 'fitness_class'  => $this->whenLoaded('classSchedule', fn() =>
                     $this->classSchedule->relationLoaded('fitnessClass')
                         ? [

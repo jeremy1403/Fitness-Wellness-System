@@ -146,9 +146,9 @@ class MembershipController extends Controller
     public function createPlan(Request $request): JsonResponse
     {
         $request->validate([
-            'name'                 => 'required|string|unique:membership_plans,name',
+            'tier_name'            => 'required|string|in:basic,premium',
+            'billing_cycle'        => 'required|string|in:monthly,biannually,annually',
             'price'                => 'required|numeric|min:0',
-            'duration_days'        => 'required|integer|min:1',
             'booking_daily_limit'  => 'required|integer|min:1',
             'booking_advance_days' => 'required|integer|min:1',
             'status'               => 'sometimes|string|in:active,inactive',
@@ -156,9 +156,9 @@ class MembershipController extends Controller
 
         $plan = $this->membershipService->createPlan(
             new CreatePlanData(
-                name:               $request->name,
+                tierName:           $request->tier_name,
+                billingCycle:       $request->billing_cycle,
                 price:              $request->price,
-                durationDays:       $request->duration_days,
                 bookingDailyLimit:  $request->booking_daily_limit,
                 bookingAdvanceDays: $request->booking_advance_days,
                 status:             $request->status ?? 'active',
@@ -175,9 +175,9 @@ class MembershipController extends Controller
     public function updatePlan(Request $request, string $id): JsonResponse
     {
         $request->validate([
-            'name'                 => 'required|string|unique:membership_plans,name,' . $id . ',id',
+            'tier_name'            => 'required|string|in:basic,premium',
+            'billing_cycle'        => 'required|string|in:monthly,biannually,annually',
             'price'                => 'required|numeric|min:0',
-            'duration_days'        => 'required|integer|min:1',
             'booking_daily_limit'  => 'required|integer|min:1',
             'booking_advance_days' => 'required|integer|min:1',
             'status'               => 'sometimes|string|in:active,inactive',
@@ -186,9 +186,9 @@ class MembershipController extends Controller
         $plan = $this->membershipService->updatePlan(
             (int) $id,
             new CreatePlanData(
-                name:               $request->name,
+                tierName:           $request->tier_name,
+                billingCycle:       $request->billing_cycle,
                 price:              $request->price,
-                durationDays:       $request->duration_days,
                 bookingDailyLimit:  $request->booking_daily_limit,
                 bookingAdvanceDays: $request->booking_advance_days,
                 status:             $request->status ?? 'active',

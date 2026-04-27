@@ -22,6 +22,7 @@ import type { User } from "@/types/auth";
 import {
   Ticket, Plus, Trash2, Edit, Loader2, TrendingUp, Users,
   DollarSign, Star, AlertCircle, CheckCircle2, Trophy, Crown, ShieldAlert,
+  QrCode, Copy,
 } from "lucide-react";
 
 // ─── Constants ─────────────────────────────────────────────────────────────
@@ -115,13 +116,13 @@ type FormData = {
   max_uses: string;
   expires_at: string;
   is_new_user_only: boolean;
-  required_plan_id: string; // "" = no restriction
+  required_tier: string; // "" = no restriction
 };
 
 const defaultForm: FormData = {
   code: "", discount_type: "fixed", discount_amount: "",
   max_discount_amount: "", max_uses: "", expires_at: "",
-  is_new_user_only: false, required_plan_id: "",
+  is_new_user_only: false, required_tier: "",
 };
 
 // ─── Client-side validation (mirrors backend) ──────────────────────────────
@@ -151,6 +152,8 @@ export function TrainerPromosView({ user }: { user: User }) {
   const [isSaving, setIsSaving]       = useState(false);
   const [formError, setFormError]     = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const [qrPromo, setQrPromo]         = useState<PromoCode | null>(null);
+  const [copied, setCopied]           = useState(false);
 
   // ── Membership plans (Member 4 consumption — same as Admin) ───────────
   const [plans, setPlans]             = useState<MembershipPlan[]>([]);
@@ -195,7 +198,7 @@ export function TrainerPromosView({ user }: { user: User }) {
       max_uses: promo.max_uses != null ? String(promo.max_uses) : "",
       expires_at: promo.expires_at ? promo.expires_at.split("T")[0] : "",
       is_new_user_only: promo.is_new_user_only,
-      required_plan_id: promo.required_plan_id != null ? String(promo.required_plan_id) : "",
+      required_tier: promo.required_tier || "",
     });
     setFormError(null);
     setFormSuccess(null);
@@ -222,7 +225,7 @@ export function TrainerPromosView({ user }: { user: User }) {
       max_uses:            form.max_uses ? parseInt(form.max_uses) : null,
       expires_at:          form.expires_at || null,
       is_new_user_only:    form.is_new_user_only,
-      required_plan_id:    form.required_plan_id ? parseInt(form.required_plan_id) : null,
+      required_tier:       form.required_tier || null,
     };
 
     try {
@@ -253,6 +256,14 @@ export function TrainerPromosView({ user }: { user: User }) {
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this referral code?") || !user.id) return;
     try { await trainerPromoApi.delete(id, user.id); fetchData(); } catch (err) { console.error(err); }
+  };
+
+  const handleCopyLink = () => {
+    if (!qrPromo) return;
+    const url = `${window.location.origin}/app/payments?promo_code=${qrPromo.code}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   // Derived: current max for the discount amount field
@@ -332,10 +343,10 @@ export function TrainerPromosView({ user }: { user: User }) {
                       <TableCell>{promo.discount_type === "percentage" ? `${promo.discount_amount}%` : `RM ${promo.discount_amount}`}</TableCell>
                       <TableCell className="text-slate-500 text-sm">{promo.max_discount_amount != null ? `RM ${promo.max_discount_amount}` : "—"}</TableCell>
                       <TableCell>
-                        {promo.required_plan_id ? (
+                        {promo.required_tier ? (
                           <Badge className="text-[10px] bg-purple-50 text-purple-700 border border-purple-200">
                             <Crown className="w-3 h-3 mr-1" />
-                            {(promo as any).required_plan_name ?? `Plan #${promo.required_plan_id}`}
+                            <span className="capitalize">{promo.required_tier}</span>
                           </Badge>
                         ) : (
                           <span className="text-xs text-slate-400">All</span>
@@ -355,8 +366,9 @@ export function TrainerPromosView({ user }: { user: User }) {
                         {promo.expires_at ? new Date(promo.expires_at).toLocaleDateString() : "Never"}
                       </TableCell>
                       <TableCell className="text-right flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(promo)} className="hover:text-blue-600 hover:bg-blue-50"><Edit className="w-4 h-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(promo.id)} className="hover:text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => setQrPromo(promo)} className="hover:text-purple-600 hover:bg-purple-50" title="Share QR Code"><QrCode className="w-4 h-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(promo)} className="hover:text-blue-600 hover:bg-blue-50" title="Edit Code"><Edit className="w-4 h-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(promo.id)} className="hover:text-red-600 hover:bg-red-50" title="Delete Code"><Trash2 className="w-4 h-4" /></Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -445,15 +457,15 @@ export function TrainerPromosView({ user }: { user: User }) {
               </div>
             )}
 
-            {/* Required Membership Tier (Member 4 consumption) */}
+            {/* Required Membership Tier */}
             <div className="space-y-1.5">
               <Label htmlFor="t-plan">
                 Required Membership Tier{" "}
                 <span className="text-xs text-slate-400">— leave blank for all members</span>
               </Label>
               <Select
-                value={form.required_plan_id}
-                onValueChange={(v) => setForm({ ...form, required_plan_id: v === "none" ? "" : v })}
+                value={form.required_tier || "none"}
+                onValueChange={(v) => setForm({ ...form, required_tier: v === "none" ? "" : v })}
                 disabled={isSaving}
               >
                 <SelectTrigger id="t-plan">
@@ -463,12 +475,14 @@ export function TrainerPromosView({ user }: { user: User }) {
                   <SelectItem value="none">
                     <span className="text-slate-400">— No restriction (all members)</span>
                   </SelectItem>
-                  {plans.map((plan) => (
-                    <SelectItem key={plan.id} value={String(plan.id)}>
-                      <Crown className="inline w-3 h-3 mr-1.5 text-purple-500" />
-                      {plan.name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="basic">
+                    <Crown className="inline w-3 h-3 mr-1.5 text-slate-500" />
+                    Basic Only
+                  </SelectItem>
+                  <SelectItem value="premium">
+                    <Crown className="inline w-3 h-3 mr-1.5 text-purple-500" />
+                    Premium Only
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -520,6 +534,40 @@ export function TrainerPromosView({ user }: { user: User }) {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* QR Code Share Modal */}
+      <Dialog open={!!qrPromo} onOpenChange={(open) => !open && setQrPromo(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <QrCode className="w-5 h-5 text-purple-600" />
+              Share Referral Code
+            </DialogTitle>
+            <DialogDescription>
+              Scan this QR code or copy the link to share <strong className="text-slate-800">{qrPromo?.code}</strong> with your clients.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-xl border mt-2">
+            {qrPromo && (
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`${window.location.origin}/app/payments?promo_code=${qrPromo.code}`)}`}
+                alt="QR Code"
+                className="w-48 h-48 rounded-md shadow-sm bg-white p-2 border"
+              />
+            )}
+            <div className="mt-6 w-full flex flex-col gap-2">
+              <Button
+                variant="outline"
+                className="w-full gap-2 border-purple-200 text-purple-700 hover:bg-purple-50"
+                onClick={handleCopyLink}
+              >
+                {copied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {copied ? "Link Copied!" : "Copy Checkout Link"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

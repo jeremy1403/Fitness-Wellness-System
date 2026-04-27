@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\DTOs\Membership\ProcessPaymentData;
+use App\DTOs\Membership\ProcessClassPaymentData;
 use App\Http\Controllers\Controller;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
@@ -98,5 +99,46 @@ class PaymentController extends Controller
             'message' => 'Payment marked as paid successfully.',
             'data'    => $payment,
         ]);
+    }
+
+    /**
+     * POST /api/v1/payments/class
+     *
+     * Pay for a pending_payment class booking (à-la-carte / pay-per-class).
+     * On success:
+     *   - Creates a Payment record linked to the booking.
+     *   - Confirms the Booking (pending_payment → confirmed) for non-cash methods.
+     */
+    public function processClassPayment(Request $request): JsonResponse
+    {
+        $request->validate([
+            'booking_id' => 'required|integer|exists:bookings,id',
+            'amount'     => 'required|numeric|min:0.01',
+            'method'     => 'required|string|in:cash,transfer,card_mock',
+            'promo_code' => 'nullable|string',
+        ]);
+
+        try {
+            $payment = $this->paymentService->processClassPayment(
+                new ProcessClassPaymentData(
+                    userId:    $request->user()->id,
+                    bookingId: $request->booking_id,
+                    amount:    (float) $request->amount,
+                    method:    $request->method,
+                    promoCode: $request->promo_code,
+                )
+            );
+
+            return response()->json([
+                'message' => $payment->status === 'pending'
+                    ? 'Cash payment recorded. Your booking will be confirmed after admin approval.'
+                    : 'Payment successful! Your booking is now confirmed.',
+                'data'    => $payment->load('booking'),
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 400);
+        }
     }
 }

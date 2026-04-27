@@ -9,6 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -39,9 +46,9 @@ const statCards = [
 ];
 
 const emptyForm = {
-  name: "",
+  tier_name: "basic",
+  billing_cycle: "monthly",
   price: "",
-  duration_days: "",
   booking_daily_limit: "",
   booking_advance_days: "",
   status: "active",
@@ -109,9 +116,9 @@ export default function AdminMembershipsPage() {
   const openEdit = (plan: MembershipPlan) => {
     setEditingPlan(plan);
     setForm({
-      name: plan.name,
+      tier_name: plan.tier_name,
+      billing_cycle: plan.billing_cycle,
       price: plan.price,
-      duration_days: String(plan.duration_days),
       booking_daily_limit: String(plan.booking_daily_limit),
       booking_advance_days: String(plan.booking_advance_days),
       status: plan.status,
@@ -125,9 +132,9 @@ export default function AdminMembershipsPage() {
     setFormError(null);
     try {
       const payload = {
-        name: form.name,
+        tier_name: form.tier_name,
+        billing_cycle: form.billing_cycle,
         price: form.price,
-        duration_days: parseInt(form.duration_days),
         booking_daily_limit: parseInt(form.booking_daily_limit),
         booking_advance_days: parseInt(form.booking_advance_days),
         status: form.status,
@@ -149,7 +156,7 @@ export default function AdminMembershipsPage() {
   };
 
   const filtered = plans.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
+    p.tier_name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -219,9 +226,9 @@ export default function AdminMembershipsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Plan Name</TableHead>
+                  <TableHead>Tier</TableHead>
                   <TableHead>Price</TableHead>
-                  <TableHead>Duration</TableHead>
+                  <TableHead>Billing Cycle</TableHead>
                   <TableHead>Daily Limit</TableHead>
                   <TableHead>Advance Days</TableHead>
                   <TableHead>Status</TableHead>
@@ -231,9 +238,9 @@ export default function AdminMembershipsPage() {
               <TableBody>
                 {filtered.map((plan) => (
                   <TableRow key={plan.id}>
-                    <TableCell className="font-medium text-slate-900">{plan.name}</TableCell>
+                    <TableCell className="font-medium text-slate-900 capitalize">{plan.tier_name}</TableCell>
                     <TableCell className="text-slate-500">RM {plan.price}</TableCell>
-                    <TableCell className="text-slate-500">{plan.duration_days} days</TableCell>
+                    <TableCell className="text-slate-500 capitalize">{plan.billing_cycle}</TableCell>
                     <TableCell className="text-slate-500">{plan.booking_daily_limit} bookings/day</TableCell>
                     <TableCell className="text-slate-500">{plan.booking_advance_days} days ahead</TableCell>
                     <TableCell>
@@ -279,16 +286,33 @@ export default function AdminMembershipsPage() {
               </div>
             )}
             <div className="flex flex-col gap-1">
-              <Label>Plan Name</Label>
-              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Basic" />
+              <Label>Tier</Label>
+              <Select value={form.tier_name} onValueChange={(v) => setForm({ ...form, tier_name: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Tier" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="basic">Basic</SelectItem>
+                  <SelectItem value="premium">Premium</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label>Billing Cycle</Label>
+              <Select value={form.billing_cycle} onValueChange={(v) => setForm({ ...form, billing_cycle: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Billing Cycle" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="biannually">Biannually</SelectItem>
+                  <SelectItem value="annually">Annually</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex flex-col gap-1">
               <Label>Price (RM)</Label>
               <Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="e.g. 29.99" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label>Duration (days)</Label>
-              <Input type="number" value={form.duration_days} onChange={(e) => setForm({ ...form, duration_days: e.target.value })} placeholder="e.g. 30" />
             </div>
             <div className="flex flex-col gap-1">
               <Label>Daily Booking Limit</Label>

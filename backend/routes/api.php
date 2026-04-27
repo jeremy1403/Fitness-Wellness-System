@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\ClassScheduleController;
 use App\Http\Controllers\Api\FitnessClassController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PromoCodeController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -65,6 +66,11 @@ Route::prefix('v1')->group(function () {
 
     // Module 4: Memberships & Payments
     Route::prefix('memberships')->group(base_path('routes/api/memberships.php'));
+
+    // Module 4 (extension): Pay-Per-Class Payments
+    Route::middleware('auth:sanctum')->prefix('payments')->group(function () {
+        Route::post('/class', [PaymentController::class, 'processClassPayment']);
+    });
 
     // Module 5: Promo Code & Campaign System (Proxy Pattern)
     // Public endpoint — rate limiting enforced via PromoCodeProxy service

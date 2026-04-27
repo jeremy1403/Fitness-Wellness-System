@@ -157,9 +157,9 @@ class MembershipService
     public function createPlan(CreatePlanData $data)
     {
         return $this->planRepository->create([
-            'name'                 => $data->name,
+            'tier_name'            => $data->tierName,
+            'billing_cycle'        => $data->billingCycle,
             'price'                => $data->price,
-            'duration_days'        => $data->durationDays,
             'booking_daily_limit'  => $data->bookingDailyLimit,
             'booking_advance_days' => $data->bookingAdvanceDays,
             'status'               => $data->status,
@@ -174,9 +174,9 @@ class MembershipService
             throw new \Exception('Plan not found.');
         }
         $plan->update([
-            'name'                 => $data->name,
+            'tier_name'            => $data->tierName,
+            'billing_cycle'        => $data->billingCycle,
             'price'                => $data->price,
-            'duration_days'        => $data->durationDays,
             'booking_daily_limit'  => $data->bookingDailyLimit,
             'booking_advance_days' => $data->bookingAdvanceDays,
             'status'               => $data->status,

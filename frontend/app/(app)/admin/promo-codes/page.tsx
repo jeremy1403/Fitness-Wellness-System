@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { adminPromoApi, type PromoCode } from "@/lib/api/promo.api";
 import { membershipApi, type MembershipPlan } from "@/lib/api/membership.api";
+import { adminApi } from "@/lib/api/admin.api";
+import type { User as ApiUser } from "@/types/auth";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -60,7 +62,28 @@ import {
   Lock,
   Infinity,
   ArrowUpDown,
+  Users,
+  DollarSign,
+  TrendingUp,
 } from "lucide-react";
+
+// ── KPI Stat Card ──────────────────────────────────────────────────────────
+function KpiCard({ icon, label, value, sub, bg }: {
+  icon: React.ReactNode; label: string; value: string | number; sub?: string; bg: string;
+}) {
+  return (
+    <Card className={`border-none shadow-lg ${bg}`}>
+      <CardContent className="p-5 flex items-center gap-4">
+        <div className="p-3 rounded-xl bg-white/60 backdrop-blur">{icon}</div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">{label}</p>
+          <p className="text-3xl font-extrabold text-slate-800 leading-tight">{value}</p>
+          {sub && <p className="text-xs text-slate-500 mt-0.5">{sub}</p>}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -81,7 +104,10 @@ type FormData = {
   max_uses: string;
   expires_at: string;
   is_active: boolean;
-  required_plan_id: string; // "" = no restriction; "123" = plan ID
+  required_tier: string; // "" = no restriction
+  min_spend_amount: string;
+  is_targeted: boolean;
+  target_user_ids: number[];
 };
 
 type HistoryEntry = {
@@ -100,7 +126,10 @@ const defaultForm: FormData = {
   max_uses: "",
   expires_at: "",
   is_active: true,
-  required_plan_id: "",
+  required_tier: "",
+  min_spend_amount: "",
+  is_targeted: false,
+  target_user_ids: [],
 };
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
@@ -128,6 +157,7 @@ export default function PromoCodesPage() {
 
   // ── Membership Plans (consumed from Member 4 for tier-restriction modal) ─
   const [plans, setPlans]                 = useState<MembershipPlan[]>([]);
+  const [users, setUsers]                 = useState<ApiUser[]>([]);
 
   const fetchPromos = async (sort: SortOption = sortBy) => {
     try {
@@ -146,6 +176,9 @@ export default function PromoCodesPage() {
     fetchPromos(sortBy);
     membershipApi.getPlans()
       .then((res) => setPlans(res.data))
+      .catch(() => {});
+    adminApi.getUsers()
+      .then((res) => setUsers(res.data.filter((u) => u.roles.includes("member"))))
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortBy]);
@@ -172,7 +205,10 @@ export default function PromoCodesPage() {
       max_uses: promo.max_uses != null ? String(promo.max_uses) : "",
       expires_at: promo.expires_at ? promo.expires_at.split("T")[0] : "",
       is_active: promo.is_active,
-      required_plan_id: promo.required_plan_id != null ? String(promo.required_plan_id) : "",
+      required_tier: promo.required_tier != null ? promo.required_tier : "",
+      min_spend_amount: promo.min_spend_amount != null && promo.min_spend_amount !== 0 ? String(promo.min_spend_amount) : "",
+      is_targeted: promo.is_targeted ?? false,
+      target_user_ids: promo.target_users?.map((u) => u.id) ?? [],
     });
     setFormError(null);
     setFormSuccess(null);
@@ -229,7 +265,7 @@ export default function PromoCodesPage() {
       return;
     }
 
-    const payload: Partial<PromoCode> = {
+    const payload: Partial<PromoCode> & { target_user_ids?: number[] } = {
       code: form.code.toUpperCase().trim(),
       discount_type: form.discount_type,
       discount_amount: parseFloat(form.discount_amount),
@@ -240,7 +276,10 @@ export default function PromoCodesPage() {
       max_uses: form.max_uses ? parseInt(form.max_uses) : null,
       expires_at: form.expires_at || null,
       is_active: form.is_active,
-      required_plan_id: form.required_plan_id ? parseInt(form.required_plan_id) : null,
+      required_tier: form.required_tier ? form.required_tier : null,
+      min_spend_amount: form.min_spend_amount ? parseFloat(form.min_spend_amount) : 0,
+      is_targeted: form.is_targeted,
+      target_user_ids: form.is_targeted ? form.target_user_ids : [],
     };
 
     try {
@@ -318,6 +357,39 @@ export default function PromoCodesPage() {
         </div>
       </div>
 
+      {/* ── Global ROI Dashboard ── */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Skeleton className="h-28 rounded-2xl" />
+          <Skeleton className="h-28 rounded-2xl" />
+          <Skeleton className="h-28 rounded-2xl" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <KpiCard
+            icon={<Users className="w-6 h-6 text-teal-600" />}
+            label="Total Redemptions"
+            value={promos.reduce((sum, p) => sum + p.times_used, 0)}
+            sub="Across all campaigns"
+            bg="bg-teal-50"
+          />
+          <KpiCard
+            icon={<DollarSign className="w-6 h-6 text-emerald-600" />}
+            label="Total Subsidized"
+            value={`RM ${promos.reduce((sum, p) => sum + (p.discount_type === 'fixed' ? Number(p.discount_amount) * p.times_used : 0), 0).toFixed(2)}`}
+            sub="Estimate (Fixed discounts only)"
+            bg="bg-emerald-50"
+          />
+          <KpiCard
+            icon={<TrendingUp className="w-6 h-6 text-violet-600" />}
+            label="Active Campaigns"
+            value={promos.filter(p => p.is_active && (!p.expires_at || new Date(p.expires_at) >= new Date())).length}
+            sub="Currently running promos"
+            bg="bg-violet-50"
+          />
+        </div>
+      )}
+
 
       <Card className="border-none shadow-xl shadow-teal-900/5 bg-white/50 backdrop-blur-xl">
         <CardHeader>
@@ -366,12 +438,26 @@ export default function PromoCodesPage() {
                       <TableRow key={promo.id}>
                         <TableCell className="font-mono font-semibold tracking-wide">
                           {promo.code}
+                          {promo.is_targeted && (
+                            <div className="mt-1">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md px-1.5 py-0.5">
+                                🎯 Targeted ({promo.target_users?.length ?? 0} Users)
+                              </span>
+                            </div>
+                          )}
                         </TableCell>
 
                         <TableCell>
                           {promo.discount_type === "percentage"
                             ? `${promo.discount_amount}%`
                             : `RM ${promo.discount_amount}`}
+                          {Number(promo.min_spend_amount) > 0 && (
+                            <div className="mt-1">
+                              <span className="text-xs text-slate-500 whitespace-nowrap">
+                                Min RM {promo.min_spend_amount}
+                              </span>
+                            </div>
+                          )}
                         </TableCell>
 
                         {/* ── Max Cap cell ── */}
@@ -620,6 +706,21 @@ export default function PromoCodesPage() {
               </div>
             </div>
 
+            {/* Min Spend */}
+            <div className="space-y-1.5">
+              <Label htmlFor="min-spend">Minimum Spend (RM)</Label>
+              <Input
+                id="min-spend"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="e.g. 50.00 (leave 0 for no minimum)"
+                value={form.min_spend_amount}
+                onChange={(e) => setForm({ ...form, min_spend_amount: e.target.value })}
+                disabled={isSaving}
+              />
+            </div>
+
             {/* Max Uses + Expires At */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
@@ -679,8 +780,8 @@ export default function PromoCodesPage() {
                 </span>
               </Label>
               <Select
-                value={form.required_plan_id}
-                onValueChange={(v) => setForm({ ...form, required_plan_id: v === "none" ? "" : v })}
+                value={form.required_tier || "none"}
+                onValueChange={(v) => setForm({ ...form, required_tier: v === "none" ? "" : v })}
                 disabled={isSaving}
               >
                 <SelectTrigger id="required-plan">
@@ -690,17 +791,76 @@ export default function PromoCodesPage() {
                   <SelectItem value="none">
                     <span className="text-slate-400">— No restriction (all members)</span>
                   </SelectItem>
-                  {plans.map((plan) => (
-                    <SelectItem key={plan.id} value={String(plan.id)}>
-                      👑 {plan.name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="basic">
+                    👑 Basic
+                  </SelectItem>
+                  <SelectItem value="premium">
+                    👑 Premium
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
+            {/* Targeted Toggle & Users */}
+            <div className="space-y-3 pt-2 border-t mt-4">
+              <div className="flex items-center gap-3">
+                <input
+                  id="is-targeted"
+                  type="checkbox"
+                  checked={form.is_targeted}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setForm({ ...form, is_targeted: checked, target_user_ids: checked ? form.target_user_ids : [] });
+                  }}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  disabled={isSaving}
+                />
+                <Label htmlFor="is-targeted" className="cursor-pointer select-none">
+                  🎯 Targeted Voucher
+                  <span className="text-xs text-slate-400 font-normal ml-2">
+                    (Limit redemption to specific members)
+                  </span>
+                </Label>
+              </div>
+
+              {form.is_targeted && (
+                <div className="space-y-2 border rounded-md p-3 max-h-48 overflow-y-auto bg-slate-50">
+                  <p className="text-xs font-semibold text-slate-500 uppercase">Select Target Users</p>
+                  {users.length === 0 ? (
+                    <p className="text-xs text-slate-400">No members found.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {users.map((user) => (
+                        <div key={user.id} className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id={`user-${user.id}`}
+                            checked={form.target_user_ids.includes(user.id)}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setForm((prev) => ({
+                                ...prev,
+                                target_user_ids: checked
+                                  ? [...prev.target_user_ids, user.id]
+                                  : prev.target_user_ids.filter((id) => id !== user.id),
+                              }));
+                            }}
+                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            disabled={isSaving}
+                          />
+                          <Label htmlFor={`user-${user.id}`} className="text-xs cursor-pointer truncate">
+                            {user.name} <span className="text-slate-400">({user.email})</span>
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* New Users Only toggle */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 pt-2">
               <input
                 id="new-user-only"
                 type="checkbox"

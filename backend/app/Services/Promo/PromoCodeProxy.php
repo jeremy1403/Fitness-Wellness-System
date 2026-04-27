@@ -18,7 +18,7 @@ class PromoCodeProxy implements PromoServiceInterface
     /**
      * Intercepts the request to add Rate Limiting before hitting the DB logic.
      */
-    public function validateCode(string $code, ?int $userId = null): array
+    public function validateCode(string $code, ?int $userId = null, float $cartSubtotal = 0.0): array
     {
         // Use IP or User ID for rate limiting key
         $key = 'promo_validate_' . ($userId ?? request()->ip());
@@ -34,6 +34,6 @@ class PromoCodeProxy implements PromoServiceInterface
         // Register the attempt
         RateLimiter::hit($key, 60);
 
-        return $this->realService->validateCode($code, $userId);
+        return $this->realService->validateCode($code, $userId, $cartSubtotal);
     }
 }

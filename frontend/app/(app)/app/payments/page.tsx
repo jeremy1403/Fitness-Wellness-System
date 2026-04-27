@@ -7,6 +7,7 @@ import {
   MembershipPlan,
   Payment,
 } from "@/lib/api/membership.api";
+import { classPaymentsApi } from "@/lib/api/bookings.api";
 import { userPromoApi, PromoCode } from "@/lib/api/promo.api";
 import { useAuth } from "@/lib/auth/context";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,9 @@ export default function PaymentsPage() {
   const router = useRouter();
 
   const [planIdParam, setPlanIdParam] = useState<string | null>(null);
+  const [bookingIdParam, setBookingIdParam] = useState<string | null>(null);
+  const [classAmountParam, setClassAmountParam] = useState<string | null>(null);
+
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,7 +91,7 @@ export default function PaymentsPage() {
   }, [planIdParam, plans]);
 
   // ── Computed price values ──────────────────────────────────────────────────
-  const originalPrice = selectedPlan ? Number(selectedPlan.price) : 0;
+  const originalPrice = selectedPlan ? Number(selectedPlan.price) : (classAmountParam ? Number(classAmountParam) : 0);
 
   const { discountValue, isCapped } = useMemo(() => {
     if (!appliedPromo || originalPrice === 0) return { discountValue: 0, isCapped: false };
@@ -113,6 +117,8 @@ export default function PaymentsPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setPlanIdParam(params.get("plan_id"));
+    setBookingIdParam(params.get("booking_id"));
+    setClassAmountParam(params.get("amount"));
     fetchData();
     fetchAvailablePromos();
   }, []);
@@ -267,11 +273,11 @@ export default function PaymentsPage() {
   }
 
   async function handlePayNow() {
-    if (!selectedPlan) {
-      setMessage("Selected plan not found.");
+    if (!selectedPlan && !bookingIdParam) {
+      setMessage("Selected item not found.");
       return;
     }
-    if (hasBlockingMembership) {
+    if (hasBlockingMembership && !bookingIdParam) {
       setMessage(
         "You already have an active or pending membership. Please wait until it is approved, cancelled, or expired before choosing another package."
       );
@@ -286,18 +292,29 @@ export default function PaymentsPage() {
     setCashReceipt("");
 
     try {
-      const subscribeRes = await membershipApi.subscribe(
-        selectedPlan.id,
-        paymentMethod
-      );
-      const membership = subscribeRes.data;
+      let paymentRes;
 
-      const paymentRes = await membershipApi.processPayment(
-        membership.id,
-        originalPrice,           // Always send original plan price; backend applies discount
-        paymentMethod,
-        appliedPromo?.code ?? undefined
-      );
+      if (bookingIdParam) {
+        paymentRes = await classPaymentsApi.processClassPayment({
+          booking_id: Number(bookingIdParam),
+          amount: originalPrice,
+          method: paymentMethod,
+          promo_code: appliedPromo?.code ?? undefined,
+        });
+      } else {
+        const subscribeRes = await membershipApi.subscribe(
+          selectedPlan!.id,
+          paymentMethod
+        );
+        const membership = subscribeRes.data;
+
+        paymentRes = await membershipApi.processPayment(
+          membership.id,
+          originalPrice,           // Always send original plan price; backend applies discount
+          paymentMethod,
+          appliedPromo?.code ?? undefined
+        );
+      }
 
       const payment = paymentRes.data;
 
@@ -310,7 +327,7 @@ export default function PaymentsPage() {
         return;
       }
 
-      router.push("/app/membership?success=payment");
+      router.push(bookingIdParam ? "/app/bookings" : "/app/membership?success=payment");
     } catch (err: any) {
       setMessage(
         err?.data?.message || err?.message || "Payment failed. Please try again."
@@ -364,85 +381,134 @@ export default function PaymentsPage() {
         </div>
       )}
 
-      {planIdParam && (
+      {(planIdParam || bookingIdParam) && (
         <Card className="rounded-3xl border border-blue-200 bg-blue-50 p-6">
-          {!selectedPlan ? (
+          {!selectedPlan && !bookingIdParam ? (
             <div className="flex flex-col gap-3">
               <h2 className="text-lg font-semibold text-slate-900">Checkout</h2>
               <p className="text-sm text-red-600">
-                The selected plan could not be found.
+                The selected item could not be found.
               </p>
             </div>
           ) : (
             <div className="flex flex-col gap-5">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">
-                  Checkout
-                </h2>
-                <p className="mt-1 text-sm text-slate-600">
-                  Review your selected membership plan before payment.
-                </p>
-              </div>
-
-              {/* ── Plan Details Grid ─────────────────────────────────────── */}
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <p className="text-sm text-slate-500">Plan Name</p>
-                  <p className="text-lg font-semibold text-slate-900">
-                    {selectedPlan.name}
+              {bookingIdParam ? (
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    Class Checkout
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Review your class booking before payment.
                   </p>
                 </div>
+              ) : (
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    Checkout
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Review your selected membership plan before payment.
+                  </p>
+                </div>
+              )}
 
-                {/* ── Price Box: dynamic, shows discount ───────────────── */}
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <p className="text-sm text-slate-500">Price</p>
-                  {appliedPromo ? (
-                    <div className="flex flex-col gap-0.5">
-                      <p className="text-sm text-slate-400 line-through">
+              {bookingIdParam ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <p className="text-sm text-slate-500">Booking Item</p>
+                    <p className="text-lg font-semibold text-slate-900">
+                      Fitness Class
+                    </p>
+                    <p className="text-xs text-slate-400">ID: #{bookingIdParam}</p>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <p className="text-sm text-slate-500">Price</p>
+                    {appliedPromo ? (
+                      <div className="flex flex-col gap-0.5">
+                        <p className="text-sm text-slate-400 line-through">
+                          RM {originalPrice.toFixed(2)}
+                        </p>
+                        <div className="flex items-baseline gap-2">
+                          <p className="text-xl font-bold text-emerald-600">
+                            RM {finalPrice.toFixed(2)}
+                          </p>
+                          <span className="text-xs font-medium text-emerald-500">
+                            −RM {discountValue.toFixed(2)}
+                            {isCapped && (
+                              <span className="ml-1 text-amber-500">
+                                (Capped)
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-lg font-semibold text-slate-900">
                         RM {originalPrice.toFixed(2)}
                       </p>
-                      <div className="flex items-baseline gap-2">
-                        <p className="text-xl font-bold text-emerald-600">
-                          RM {finalPrice.toFixed(2)}
-                        </p>
-                        <span className="text-xs font-medium text-emerald-500">
-                          −RM {discountValue.toFixed(2)}
-                          {isCapped && (
-                            <span className="ml-1 text-amber-500">
-                              (Capped at max limit)
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-lg font-semibold text-slate-900">
-                      RM {originalPrice.toFixed(2)}
+                    )}
+                  </div>
+                </div>
+              ) : selectedPlan ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <p className="text-sm text-slate-500">Plan Name</p>
+                    <p className="text-lg font-semibold text-slate-900 capitalize">
+                      {selectedPlan.tier_name} Tier
                     </p>
-                  )}
-                </div>
+                  </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <p className="text-sm text-slate-500">Duration</p>
-                  <p className="text-lg font-semibold text-slate-900">
-                    {selectedPlan.duration_days} days
-                  </p>
-                </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <p className="text-sm text-slate-500">Price</p>
+                    {appliedPromo ? (
+                      <div className="flex flex-col gap-0.5">
+                        <p className="text-sm text-slate-400 line-through">
+                          RM {originalPrice.toFixed(2)}
+                        </p>
+                        <div className="flex items-baseline gap-2">
+                          <p className="text-xl font-bold text-emerald-600">
+                            RM {finalPrice.toFixed(2)}
+                          </p>
+                          <span className="text-xs font-medium text-emerald-500">
+                            −RM {discountValue.toFixed(2)}
+                            {isCapped && (
+                              <span className="ml-1 text-amber-500">
+                                (Capped at max limit)
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-lg font-semibold text-slate-900">
+                        RM {originalPrice.toFixed(2)}
+                      </p>
+                    )}
+                  </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <p className="text-sm text-slate-500">Daily Booking Limit</p>
-                  <p className="text-lg font-semibold text-slate-900">
-                    {selectedPlan.booking_daily_limit} bookings/day
-                  </p>
-                </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <p className="text-sm text-slate-500">Billing Cycle</p>
+                    <p className="text-lg font-semibold text-slate-900 capitalize">
+                      {selectedPlan.billing_cycle}
+                    </p>
+                  </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 md:col-span-2">
-                  <p className="text-sm text-slate-500">Advance Booking</p>
-                  <p className="text-lg font-semibold text-slate-900">
-                    Up to {selectedPlan.booking_advance_days} days ahead
-                  </p>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <p className="text-sm text-slate-500">Daily Booking Limit</p>
+                    <p className="text-lg font-semibold text-slate-900">
+                      {selectedPlan.booking_daily_limit} bookings/day
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4 md:col-span-2">
+                    <p className="text-sm text-slate-500">Advance Booking</p>
+                    <p className="text-lg font-semibold text-slate-900">
+                      Up to {selectedPlan.booking_advance_days} days ahead
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : null}
 
               {/* ── Voucher / Promo Code Section ──────────────────────────── */}
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -885,8 +951,8 @@ export default function PaymentsPage() {
               <Card key={payment.id} className="p-6">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="font-semibold text-slate-900">
-                      {payment.membership?.plan?.name ?? "Membership Payment"}
+                    <p className="font-semibold text-slate-900 capitalize">
+                      {payment.membership?.plan?.tier_name ? `${payment.membership.plan.tier_name} Tier` : "Membership Payment"}
                     </p>
                     <p className="text-sm text-slate-500">
                       Ref: {payment.reference_no}

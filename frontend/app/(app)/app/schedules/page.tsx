@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation"; // 用于获取 URL 上的 classId
 import { useAuth } from "@/lib/auth/context"; 
@@ -60,17 +61,21 @@ function Toast({
 
 function AttendanceBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    booked:    "bg-blue-50 text-blue-700 border-blue-200",
-    cancelled: "bg-slate-100 text-slate-500 border-slate-200",
-    attended:  "bg-emerald-50 text-emerald-700 border-emerald-200",
-    no_show:   "bg-amber-50 text-amber-700 border-amber-200",
+    booked:          "bg-blue-50 text-blue-700 border-blue-200",
+    confirmed:       "bg-emerald-50 text-emerald-700 border-emerald-200",
+    pending_payment: "bg-amber-50 text-amber-700 border-amber-200",
+    cancelled:       "bg-slate-100 text-slate-500 border-slate-200",
+    attended:        "bg-emerald-50 text-emerald-700 border-emerald-200",
+    no_show:         "bg-amber-50 text-amber-700 border-amber-200",
   };
 
   const labels: Record<string, string> = {
-    booked:    "Booked",
-    cancelled: "Cancelled",
-    attended:  "Attended",
-    no_show:   "No Show",
+    booked:          "Booked",
+    confirmed:       "Confirmed ✓",
+    pending_payment: "⏳ Awaiting Payment",
+    cancelled:       "Cancelled",
+    attended:        "Attended",
+    no_show:         "No Show",
   };
 
   return (
@@ -154,6 +159,7 @@ function AttendancePanel({
           const isUpdating = updatingId === booking.id;
           const canMark =
             booking.status === "booked" ||
+            booking.status === "confirmed" ||
             booking.status === "attended" ||
             booking.status === "no_show";
 
@@ -207,43 +213,35 @@ function AttendancePanel({
   );
 }
 
-// ─── Book Now Button ──────────────────────────────────────────────────────────
+function BookNowButton({
+  scheduleId,
+  classPrice,
+  classId,
+}: {
+  scheduleId: number;
+  classPrice: number;
+  classId: number;
+}) {
+  const router = useRouter();
 
-function BookNowButton({ scheduleId }: { scheduleId: number }) {
-  const [booking, setBooking] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
-
-  const handleBook = async () => {
-    setBooking(true);
-    try {
-      await bookingsApi.create({ class_schedule_id: scheduleId });
-      setToast({ message: "Booking confirmed! View it in My Bookings.", type: "success" });
-    } catch (e) {
-      const message =
-        e instanceof ApiError ? e.message : "Booking failed. Please try again.";
-      setToast({ message, type: "error" });
-    } finally {
-      setBooking(false);
-    }
+  const handleBook = () => {
+    router.push(`/app/classes/${classId}/book?schedule_id=${scheduleId}`);
   };
 
   return (
-    <>
+    <div className="flex flex-col items-end gap-1">
+      {classPrice > 0 && (
+        <span className="text-xs font-bold text-slate-500 bg-slate-100 border border-slate-200 rounded-full px-3 py-1">
+          RM {Number(classPrice).toFixed(2)} / class
+        </span>
+      )}
       <button
         onClick={handleBook}
-        disabled={booking}
-        className="mt-4 sm:mt-0 w-full sm:w-auto text-center rounded-full bg-slate-900 px-8 py-3 text-sm font-bold text-white hover:bg-slate-800 transition-all shadow-md shadow-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full sm:w-auto text-center rounded-full bg-slate-900 px-8 py-3 text-sm font-bold text-white hover:bg-slate-800 transition-all shadow-md shadow-slate-200"
       >
-        {booking ? "Booking…" : "Book Now"}
+        Book Now
       </button>
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
-    </>
+    </div>
   );
 }
 
@@ -594,7 +592,11 @@ function SchedulesContent() {
                 <div className="flex items-center gap-2 mt-4 sm:mt-0">
                   {/* Member: Book Now button with real API call */}
                   {primaryRole === "member" && (
-                    <BookNowButton scheduleId={item.id} />
+                    <BookNowButton
+                      scheduleId={item.id}
+                      classPrice={item.fitness_class?.price ?? 0}
+                      classId={item.fitness_class?.id}
+                    />
                   )}
 
                   {/* Trainer: View Attendees toggle */}

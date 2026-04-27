@@ -3,9 +3,9 @@ import { http } from "./http";
 // --- Types ---
 export interface MembershipPlan {
   id: number;
-  name: string;
+  tier_name: string;
+  billing_cycle: string;
   price: string;
-  duration_days: number;
   booking_daily_limit: number;
   booking_advance_days: number;
   status: string;

@@ -105,7 +105,7 @@ export default function MembershipPage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-green-900">
-                Current Plan: {currentMembership.plan?.name ?? "Membership"}
+                Current Plan: <span className="capitalize">{currentMembership.plan?.tier_name ? `${currentMembership.plan.tier_name} Tier` : "Membership"}</span>
               </h2>
               <p className="mt-1 text-sm text-green-700">
                 Valid until: {new Date(currentMembership.end_date).toLocaleDateString()}
@@ -134,7 +134,7 @@ export default function MembershipPage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-amber-900">
-                Pending Membership: {currentMembership.plan?.name ?? "Membership"}
+                Pending Membership: <span className="capitalize">{currentMembership.plan?.tier_name ? `${currentMembership.plan.tier_name} Tier` : "Membership"}</span>
               </h2>
               <p className="mt-1 text-sm text-amber-800">
                 You already selected a package and your payment is awaiting admin confirmation.
@@ -177,12 +177,12 @@ export default function MembershipPage() {
             <Card key={plan.id} className="flex flex-col gap-4 p-6">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">
-                  {plan.name}
+                  <span className="capitalize">{plan.tier_name} Tier</span>
                 </h3>
                 <p className="mt-1 text-2xl font-bold text-slate-900">
                   RM {plan.price}
-                  <span className="text-sm font-normal text-slate-500">
-                    /{plan.duration_days} days
+                  <span className="text-sm font-normal text-slate-500 capitalize">
+                    /{plan.billing_cycle}
                   </span>
                 </p>
               </div>

@@ -310,6 +310,20 @@ export default function UserClassesPage() {
                   </div>
                   <p className="mt-4 text-sm text-slate-600 line-clamp-2 h-10">{cls.description || "No description."}</p>
 
+                  {/* Per-class price tag — visible to members */}
+                  {primaryRole !== 'trainer' && (
+                    <div className="mt-3 inline-flex items-center gap-1.5">
+                      <span className="text-xs font-bold uppercase tracking-widest text-slate-400">À-la-carte</span>
+                      <span className={`text-sm font-black ${
+                        Number(cls.price) === 0
+                          ? 'text-emerald-600'
+                          : 'text-slate-800'
+                      }`}>
+                        {Number(cls.price) === 0 ? 'Free' : `RM ${Number(cls.price).toFixed(2)}`}
+                      </span>
+                    </div>
+                  )}
+
                   {/* 排期统计信息展示面板 */}
                   <div className="mt-6 bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
                     <div className="flex items-center justify-between">

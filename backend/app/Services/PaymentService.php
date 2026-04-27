@@ -3,8 +3,11 @@
 namespace App\Services;
 
 use App\DTOs\Membership\ProcessPaymentData;
+use App\DTOs\Membership\ProcessClassPaymentData;
+use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\PromoCode;
+use App\Repositories\Contracts\BookingRepositoryInterface;
 use App\Repositories\Contracts\MembershipRepositoryInterface;
 use App\Repositories\Contracts\PaymentRepositoryInterface;
 use App\Repositories\Contracts\PromoCodeRepositoryInterface;
@@ -21,6 +24,7 @@ class PaymentService
         private readonly MembershipRepositoryInterface   $membershipRepository,
         private readonly PromoServiceInterface           $promoService,
         private readonly PromoCodeRepositoryInterface    $promoCodeRepository,
+        private readonly BookingRepositoryInterface      $bookingRepository,
     ) {}
 
     public function getUserPayments(int $userId): Collection
@@ -116,11 +120,154 @@ class PaymentService
                 'discount_applied' => $discountApplied,
             ]);
 
-            // ── Redemption Hook ──────────────────────────────────────────────
+            // ── Redemption Hook (TOCTOU Fix) ─────────────────────────────────
             // For card/transfer, payment is immediately "paid" — redeem now.
             // For cash, the payment is "pending" — redemption fires in markAsPaid().
             if ($status === 'paid' && $promoCodeId) {
+                // Pessimistic Lock to prevent Race Condition
+                $lockedPromo = PromoCode::where('id', $promoCodeId)->lockForUpdate()->first();
+                if (!$lockedPromo) {
+                    throw new \Exception('Promo code no longer exists.');
+                }
+                if ($lockedPromo->max_uses !== null && $lockedPromo->times_used >= $lockedPromo->max_uses) {
+                    throw new \Exception('Promo code usage limit reached during checkout.');
+                }
+                if ($this->promoCodeRepository->hasUserUsedCode($data->userId, $promoCodeId)) {
+                    throw new \Exception('You have already used this promo code.');
+                }
+
                 $this->redeemPromo($promoCodeId, $data->userId);
+            }
+
+            return $payment;
+        });
+    }
+
+    /**
+     * Process a pay-per-class (à-la-carte) payment.
+     *
+     * Atomically:
+     *  1. Validates the booking belongs to the user and is awaiting payment.
+     *  2. Validates the submitted amount is >= the class's list price (anti-tamper).
+     *  3. Creates a Payment record linked to the booking (no membership).
+     *  4. Transitions the Booking status from 'pending_payment' → 'confirmed'.
+     */
+    public function processClassPayment(ProcessClassPaymentData $data): Payment
+    {
+        $booking = $this->bookingRepository->findById($data->bookingId);
+
+        if (!$booking) {
+            throw new \Exception('Booking not found.');
+        }
+
+        if ($booking->user_id !== $data->userId) {
+            throw new \Exception('Unauthorized.');
+        }
+
+        if ($booking->status !== 'pending_payment') {
+            throw new \Exception(
+                "This booking cannot be paid — current status is '{$booking->status}'."
+            );
+        }
+
+        // ── Promo Code Validation & Discount Calculation ────────────────────
+        $finalAmount      = $data->amount;
+        $discountApplied  = 0.0;
+        $promoCodeId      = null;
+
+        if (!empty($data->promoCode)) {
+            $validation = $this->promoService->validateCode($data->promoCode, $data->userId);
+
+            if (!$validation['valid']) {
+                throw new \Exception($validation['message']);
+            }
+
+            $details     = $validation['details'];
+            $promoCodeId = $details['promo_code_id'];
+
+            if ($details['discount_type'] === 'percentage') {
+                // Calculate percentage of the original class price
+                $calculated = ($data->amount * $details['discount_amount']) / 100;
+
+                // ── MAX CAP ENFORCEMENT (Critical Business Rule) ─────────────
+                if (!is_null($details['max_discount_amount']) && $details['max_discount_amount'] > 0) {
+                    $calculated = min($calculated, (float) $details['max_discount_amount']);
+                }
+
+                $discountApplied = $calculated;
+            } else {
+                // Flat discount — never exceed the original price
+                $discountApplied = min((float) $details['discount_amount'], $data->amount);
+            }
+
+            $finalAmount = max(0, $data->amount - $discountApplied);
+        }
+
+        // ── Anti-tamper: verify paid amount >= class list price (before discount) ───────────────
+        $classPrice = BookingService::FLAT_CLASS_RATE;
+
+        if ($data->amount < $classPrice) {
+            throw new \Exception(
+                "Payment amount (RM {$data->amount}) is less than the class price (RM {$classPrice})."
+            );
+        }
+
+        return DB::transaction(function () use ($data, $booking, $finalAmount, $discountApplied, $promoCodeId) {
+            $status = $data->method === 'cash' ? 'pending' : 'paid';
+
+            // Create payment linked to the booking (not a membership)
+            $payment = $this->paymentRepository->create([
+                'membership_id'    => null,
+                'booking_id'       => $data->bookingId,
+                'user_id'          => $data->userId,
+                'amount'           => $finalAmount,
+                'method'           => $data->method,
+                'status'           => $status,
+                'paid_at'          => now(),
+                'reference_no'     => $this->generateReferenceNo(),
+                'promo_code_id'    => $promoCodeId,
+                'discount_applied' => $discountApplied,
+            ]);
+
+            AppLogger::info('payment', 'Class payment created', [
+                'user_id'          => $data->userId,
+                'booking_id'       => $data->bookingId,
+                'payment_id'       => $payment->id,
+                'method'           => $payment->method,
+                'status'           => $payment->status,
+                'promo_code_id'    => $promoCodeId,
+                'discount_applied' => $discountApplied,
+            ]);
+
+            // Only confirm the booking immediately for non-cash payments.
+            // Cash payments stay pending_payment until admin runs markAsPaid().
+            if ($status === 'paid') {
+                $this->bookingRepository->update($booking, [
+                    'status' => 'confirmed',
+                ]);
+
+                AppLogger::info('payment', 'Booking confirmed after class payment', [
+                    'booking_id' => $data->bookingId,
+                    'payment_id' => $payment->id,
+                ]);
+
+                // ── Redemption Hook (TOCTOU Fix) ─────────────────────────────────
+                // For card/transfer, payment is immediately "paid" — redeem now.
+                if ($promoCodeId) {
+                    // Pessimistic Lock to prevent Race Condition
+                    $lockedPromo = PromoCode::where('id', $promoCodeId)->lockForUpdate()->first();
+                    if (!$lockedPromo) {
+                        throw new \Exception('Promo code no longer exists.');
+                    }
+                    if ($lockedPromo->max_uses !== null && $lockedPromo->times_used >= $lockedPromo->max_uses) {
+                        throw new \Exception('Promo code usage limit reached during checkout.');
+                    }
+                    if ($this->promoCodeRepository->hasUserUsedCode($data->userId, $promoCodeId)) {
+                        throw new \Exception('You have already used this promo code.');
+                    }
+
+                    $this->redeemPromo($promoCodeId, $data->userId);
+                }
             }
 
             return $payment;
@@ -167,10 +314,31 @@ class PaymentService
             'reference_no' => $updated->reference_no,
         ]);
 
-        // ── Redemption Hook for Cash Payments ───────────────────────────────
+        // ── Redemption Hook for Cash Payments (Membership) (TOCTOU Fix) ──────
         // Only fires if this payment had a promo attached and had been pending.
         if ($updated->promo_code_id) {
-            $this->redeemPromo($updated->promo_code_id, $updated->user_id);
+            DB::transaction(function () use ($updated) {
+                $lockedPromo = PromoCode::where('id', $updated->promo_code_id)->lockForUpdate()->first();
+                if ($lockedPromo && ($lockedPromo->max_uses === null || $lockedPromo->times_used < $lockedPromo->max_uses)) {
+                    if (!$this->promoCodeRepository->hasUserUsedCode($updated->user_id, $updated->promo_code_id)) {
+                        $this->redeemPromo($updated->promo_code_id, $updated->user_id);
+                    }
+                }
+            });
+        }
+
+        // ── Booking Confirmation Hook for Cash Class Payments ────────────────
+        // If this payment is linked to a booking (not a membership), confirm it.
+        if ($updated->booking_id) {
+            $booking = $this->bookingRepository->findById($updated->booking_id);
+            if ($booking && $booking->status === 'pending_payment') {
+                $this->bookingRepository->update($booking, ['status' => 'confirmed']);
+
+                AppLogger::info('payment', 'Booking confirmed after admin cash class payment', [
+                    'booking_id' => $updated->booking_id,
+                    'payment_id' => $updated->id,
+                ]);
+            }
         }
 
         return $updated;

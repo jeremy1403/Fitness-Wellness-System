@@ -19,11 +19,13 @@ class FitnessClass extends Model
         'capacity',
         'setup_mode',
         'status',
-        'created_by'
+        'created_by',
+        'price',
     ];
 
     protected $casts = [
         'duration_minutes' => 'integer',
+        'price'            => 'decimal:2',
     ];
 
     public function schedules(): HasMany

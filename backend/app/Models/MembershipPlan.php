@@ -11,9 +11,9 @@ class MembershipPlan extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name',
+        'tier_name',
+        'billing_cycle',
         'price',
-        'duration_days',
         'booking_daily_limit',
         'booking_advance_days',
         'status',
@@ -21,7 +21,6 @@ class MembershipPlan extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
-        'duration_days' => 'integer',
         'booking_daily_limit' => 'integer',
         'booking_advance_days' => 'integer',
     ];

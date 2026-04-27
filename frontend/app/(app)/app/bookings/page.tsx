@@ -14,15 +14,34 @@ function formatDate(iso: string) {
     year: "numeric",
     month: "short",
     day: "numeric",
+    timeZone: "UTC",
   });
 }
 
 function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-MY", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const d = new Date(iso);
+  const hours = String(d.getUTCHours()).padStart(2, "0");
+  const minutes = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
 }
+
+
+function formatRelativeDate(iso: string) {
+  const date = new Date(iso);
+  const now = new Date();
+
+  const isToday = date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const isTomorrow = date.getDate() === tomorrow.getDate() && date.getMonth() === tomorrow.getMonth() && date.getFullYear() === tomorrow.getFullYear();
+
+  if (isToday) return `Today`;
+  if (isTomorrow) return `Tomorrow`;
+
+  return formatDate(iso);
+}
+
+
 
 // ─── Membership Banner ────────────────────────────────────────────────────────
 
@@ -32,7 +51,7 @@ function MembershipBanner() {
     membership: {
       status: string;
       plan?: {
-        name: string;
+        tier_name: string;
         booking_daily_limit: number;
         booking_advance_days: number;
       };
@@ -64,7 +83,7 @@ function MembershipBanner() {
       <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-100">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></svg>
           </div>
           <div>
             <p className="text-sm font-semibold text-amber-800">No Active Membership</p>
@@ -84,11 +103,11 @@ function MembershipBanner() {
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-600"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-600"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
           </div>
           <div>
-            <p className="text-sm font-semibold text-emerald-800">
-              {plan.name} Plan
+            <p className="text-sm font-semibold text-emerald-800 capitalize">
+              {plan.tier_name} Tier
             </p>
             <p className="text-xs text-emerald-600 mt-0.5">
               Active membership
@@ -122,17 +141,21 @@ function MembershipBanner() {
 
 function StatusBadge({ status }: { status: Booking["status"] }) {
   const styles: Record<string, string> = {
-    booked:    "bg-emerald-50 text-emerald-700 border-emerald-200",
+    booked: "bg-emerald-50 text-emerald-700 border-emerald-200", // legacy
+    confirmed: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    pending_payment: "bg-amber-50 text-amber-700 border-amber-200",
     cancelled: "bg-slate-100 text-slate-500 border-slate-200",
-    attended:  "bg-blue-50 text-blue-700 border-blue-200",
-    no_show:   "bg-amber-50 text-amber-700 border-amber-200",
+    attended: "bg-blue-50 text-blue-700 border-blue-200",
+    no_show: "bg-red-50 text-red-700 border-red-200",
   };
 
   const dotStyles: Record<string, string> = {
-    booked:    "bg-emerald-500",
+    booked: "bg-emerald-500",
+    confirmed: "bg-emerald-500",
+    pending_payment: "bg-amber-500",
     cancelled: "bg-slate-400",
-    attended:  "bg-blue-500",
-    no_show:   "bg-amber-500",
+    attended: "bg-blue-500",
+    no_show: "bg-red-500",
   };
 
   return (
@@ -191,22 +214,34 @@ function BookingCard({
 }) {
   const schedule = booking.class_schedule;
   const fitnessClass = schedule?.fitness_class;
-  const isBooked = booking.status === "booked";
+  const isBooked = booking.status === "booked" || booking.status === "confirmed" || booking.status === "pending_payment";
+  const FLAT_RATE = 10.00;
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-3xl border bg-white p-6 shadow-sm transition-all duration-200 hover:shadow-md ${
-        !isBooked ? "opacity-60" : "border-slate-200"
-      }`}
+      className={`group relative overflow-hidden rounded-3xl border bg-white p-6 shadow-sm transition-all duration-200 hover:shadow-md ${!isBooked ? "opacity-60" : "border-slate-200"
+        }`}
     >
       {/* Top row */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <p className="truncate text-lg font-bold text-slate-900">
-            {fitnessClass?.title ?? "Fitness Class"}
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="truncate text-lg font-bold text-slate-900">
+              {fitnessClass?.title ?? "Fitness Class"}
+            </p>
+            {booking.is_quota_used && (
+              <span className="inline-flex items-center rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                🎫 Daily Quota Used
+              </span>
+            )}
+            {!booking.is_quota_used && (booking.status === "confirmed" || booking.status === "attended") && (
+              <span className="inline-flex items-center rounded bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800">
+                💳 Paid A-la-carte
+              </span>
+            )}
+          </div>
           {fitnessClass?.description && (
-            <p className="mt-0.5 line-clamp-1 text-sm text-slate-500">
+            <p className="mt-1 line-clamp-1 text-sm text-slate-500">
               {fitnessClass.description}
             </p>
           )}
@@ -216,13 +251,13 @@ function BookingCard({
 
       {/* Schedule info */}
       {schedule && (
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="rounded-2xl bg-slate-50 px-4 py-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
               Date
             </p>
             <p className="mt-1 text-sm font-semibold text-slate-700">
-              {formatDate(schedule.start_datetime)}
+              {formatRelativeDate(schedule.start_datetime)}
             </p>
           </div>
           <div className="rounded-2xl bg-slate-50 px-4 py-3">
@@ -234,16 +269,22 @@ function BookingCard({
               {formatTime(schedule.end_datetime)}
             </p>
           </div>
-          {fitnessClass?.duration_minutes && (
-            <div className="rounded-2xl bg-slate-50 px-4 py-3">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                Duration
-              </p>
-              <p className="mt-1 text-sm font-semibold text-slate-700">
-                {fitnessClass.duration_minutes} min
-              </p>
-            </div>
-          )}
+          <div className="rounded-2xl bg-slate-50 px-4 py-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+              Trainer
+            </p>
+            <p className="mt-1 text-sm font-semibold text-slate-700 truncate">
+              {schedule.trainer_name ?? "TBA"}
+            </p>
+          </div>
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 flex flex-col justify-center">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+              Price
+            </p>
+            <p className={`mt-1 text-sm font-semibold ${booking.is_quota_used ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
+              RM {FLAT_RATE.toFixed(2)}
+            </p>
+          </div>
         </div>
       )}
 
@@ -370,11 +411,10 @@ export default function BookingsPage() {
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`rounded-full px-4 py-2 text-sm font-semibold capitalize transition-all ${
-                filter === f
-                  ? "bg-slate-900 text-white shadow-sm"
-                  : "bg-white border border-slate-200 text-slate-600 hover:border-slate-400"
-              }`}
+              className={`rounded-full px-4 py-2 text-sm font-semibold capitalize transition-all ${filter === f
+                ? "bg-slate-900 text-white shadow-sm"
+                : "bg-white border border-slate-200 text-slate-600 hover:border-slate-400"
+                }`}
             >
               {f}
             </button>

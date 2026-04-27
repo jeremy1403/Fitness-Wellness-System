@@ -10,19 +10,19 @@ class EloquentBookingRepository implements BookingRepositoryInterface
 {
     public function findById(int $id): ?Booking
     {
-        return Booking::with('classSchedule.fitnessClass')->find($id);
+        return Booking::with(['classSchedule.fitnessClass', 'classSchedule.trainer.user'])->find($id);
     }
 
     public function findAll(): Collection
     {
-        return Booking::with(['classSchedule.fitnessClass', 'user'])
+        return Booking::with(['classSchedule.fitnessClass', 'classSchedule.trainer.user', 'user'])
             ->orderByDesc('booked_at')
             ->get();
     }
 
     public function findByUser(int $userId): Collection
     {
-        return Booking::with('classSchedule.fitnessClass')
+        return Booking::with(['classSchedule.fitnessClass', 'classSchedule.trainer.user'])
             ->where('user_id', $userId)
             ->orderByDesc('booked_at')
             ->get();
@@ -46,7 +46,21 @@ class EloquentBookingRepository implements BookingRepositoryInterface
     public function countUserBookingsForDate(int $userId, string $date): int
     {
         return Booking::where('user_id', $userId)
-            ->where('status', 'booked')
+            ->where('status', 'booked') // legacy only — kept for DynamicBookingPolicy
+            ->whereHas('classSchedule', function ($query) use ($date) {
+                $query->whereDate('start_datetime', $date);
+            })
+            ->count();
+    }
+
+    /**
+     * Count all bookings that occupy a quota slot for a given date.
+     * Used by the new Decision Engine in BookingService.
+     */
+    public function countActiveBookingsForDate(int $userId, string $date): int
+    {
+        return Booking::where('user_id', $userId)
+            ->whereIn('status', ['confirmed', 'pending_payment', 'booked'])
             ->whereHas('classSchedule', function ($query) use ($date) {
                 $query->whereDate('start_datetime', $date);
             })
@@ -56,7 +70,7 @@ class EloquentBookingRepository implements BookingRepositoryInterface
     public function countBookingsForSchedule(int $scheduleId): int
     {
         return Booking::where('class_schedule_id', $scheduleId)
-            ->where('status', 'booked')
+            ->whereIn('status', ['confirmed', 'pending_payment', 'booked'])
             ->count();
     }
 

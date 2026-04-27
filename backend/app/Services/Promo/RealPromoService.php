@@ -23,7 +23,7 @@ class RealPromoService implements PromoServiceInterface
      * Validates the promo code with full business rule checks.
      * SQL Injection prevention: all DB queries use Eloquent parameterized queries via the repository.
      */
-    public function validateCode(string $code, ?int $userId = null): array
+    public function validateCode(string $code, ?int $userId = null, float $cartSubtotal = 0.0): array
     {
         $promo = $this->promoRepository->findByCode($code);
 
@@ -59,10 +59,25 @@ class RealPromoService implements PromoServiceInterface
             }
         }
 
+        // ── Advanced Rule 3: Targeted Vouchers (CRM) ──────────────────────────
+        if ($promo->is_targeted) {
+            if (!$userId || !$promo->targetUsers()->where('user_id', $userId)->exists()) {
+                return ['valid' => false, 'message' => 'This voucher is targeted and you are not eligible to use it.'];
+            }
+        }
+
+        // ── Advanced Rule 4: Minimum Spend Requirement ────────────────────────
+        if ($promo->min_spend_amount > 0 && $cartSubtotal < $promo->min_spend_amount) {
+            return [
+                'valid'   => false,
+                'message' => "This voucher requires a minimum spend of RM {$promo->min_spend_amount}.",
+            ];
+        }
+
         // ── Advanced Rule 3: Membership Tier Restriction (Consumes Member 4) ──
-        // If the promo has a required_plan_id, verify the user holds that active plan.
+        // If the promo has a required_tier, verify the user holds an active plan of that tier.
         // This is a deliberate Service Consumption point: Member 5 → Member 4's data layer.
-        if ($promo->required_plan_id !== null) {
+        if ($promo->required_tier !== null) {
             $user = $userId ? User::find($userId) : Auth::user();
 
             $hasRequiredTier = false;
@@ -71,21 +86,22 @@ class RealPromoService implements PromoServiceInterface
                 // Consume Member 4's Membership model directly (same monolith).
                 // In a true microservice, this would be an authenticated HTTP call to
                 //   GET /api/v1/memberships/status for the target user.
-                $activeMembership = \App\Models\Membership::where('user_id', $user->id)
-                    ->where('membership_plan_id', $promo->required_plan_id)
+                $activeMembership = \App\Models\Membership::with('plan')
+                    ->where('user_id', $user->id)
                     ->where('status', 'active')
                     ->where('end_date', '>=', now())
                     ->first();
 
-                $hasRequiredTier = $activeMembership !== null;
+                if ($activeMembership && $activeMembership->plan) {
+                    $hasRequiredTier = strtolower($activeMembership->plan->tier_name) === strtolower($promo->required_tier);
+                }
             }
 
             if (!$hasRequiredTier) {
-                // Load plan name for a friendly error message
-                $planName = \App\Models\MembershipPlan::find($promo->required_plan_id)?->name ?? 'required';
+                $tierName = ucfirst($promo->required_tier);
                 return [
                     'valid'   => false,
-                    'message' => "This voucher is reserved for members on the \"{$planName}\" plan.",
+                    'message' => "This voucher is reserved for members on the \"{$tierName}\" tier.",
                 ];
             }
         }
@@ -108,7 +124,7 @@ class RealPromoService implements PromoServiceInterface
                 'max_discount_amount' => $cappedAt,
                 'is_new_user_only'    => $promo->is_new_user_only,
                 'promo_code_id'       => $promo->id,
-                'required_plan_id'    => $promo->required_plan_id,
+                'required_tier'       => $promo->required_tier,
             ],
         ];
     }

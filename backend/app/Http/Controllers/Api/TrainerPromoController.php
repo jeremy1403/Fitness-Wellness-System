@@ -99,10 +99,10 @@ class TrainerPromoController extends Controller
             'discount_type'       => 'required|in:fixed,percentage',
             'discount_amount'     => 'required|numeric|min:0.01',
             'max_discount_amount' => 'nullable|numeric|min:0',
-            'max_uses'            => 'nullable|integer|min:1',
-            'expires_at'          => 'nullable|date|after:today',
+            'max_uses'            => 'nullable|integer|min:1|max:100',
+            'expires_at'          => 'nullable|date|after:today|before_or_equal:+6 months',
             'is_new_user_only'    => 'boolean',
-            'required_plan_id'    => 'nullable|integer|exists:membership_plans,id',
+            'required_tier'       => 'nullable|string|in:basic,premium',
         ]);
 
         // ── Trainer Discount Cap (Privilege Escalation Prevention) ────────────
@@ -144,11 +144,11 @@ class TrainerPromoController extends Controller
             'discount_type'       => 'sometimes|in:fixed,percentage',
             'discount_amount'     => 'sometimes|numeric|min:0.01',
             'max_discount_amount' => 'nullable|numeric|min:0',
-            'max_uses'            => 'nullable|integer|min:1',
-            'expires_at'          => 'nullable|date|after:today',
+            'max_uses'            => 'nullable|integer|min:1|max:100',
+            'expires_at'          => 'nullable|date|after:today|before_or_equal:+6 months',
             'is_active'           => 'sometimes|boolean',
             'is_new_user_only'    => 'sometimes|boolean',
-            'required_plan_id'    => 'nullable|integer|exists:membership_plans,id',
+            'required_tier'       => 'nullable|string|in:basic,premium',
         ]);
 
         // ── Trainer Discount Cap — also enforced on updates ───────────────────

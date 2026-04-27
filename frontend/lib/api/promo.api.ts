@@ -16,12 +16,15 @@ export type PromoCode = {
   updated_at: string;
   /** Injected by backend: true if this user already redeemed it */
   is_already_used?: boolean;
-  /** Required membership plan ID — null means open to all tiers */
-  required_plan_id?: number | null;
-  /** Human-readable plan name, eager-loaded by the backend */
-  required_plan_name?: string | null;
+  /** Required membership tier — null means open to all tiers */
+  required_tier?: string | null;
+  /** Human-readable tier name, provided by the backend */
+  required_tier_name?: string | null;
   /** True if the user's active plan satisfies the restriction */
   user_meets_tier_requirement?: boolean;
+  min_spend_amount?: string | number;
+  is_targeted?: boolean;
+  target_users?: { id: number; name: string; email: string }[];
 };
 
 

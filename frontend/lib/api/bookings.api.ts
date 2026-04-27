@@ -2,6 +2,7 @@
 
 import { http } from "./http";
 import type {
+  BookingCreateResult,
   BookingListResponse,
   BookingResponse,
   CreateBookingPayload,
@@ -13,9 +14,15 @@ export const bookingsApi = {
   /**
    * Book a class schedule.
    * POST /api/v1/bookings
+   *
+   * Returns a discriminated union based on HTTP status:
+   *   201 → { status: 'confirmed',       requires_payment: false, data: Booking }
+   *   202 → { status: 'pending_payment', requires_payment: true,  booking_id, class_price, data: Booking }
+   *
+   * The http() utility treats both 201 and 202 as success (res.ok).
    */
   create(payload: CreateBookingPayload) {
-    return http<BookingResponse>(`${BASE}/`, {
+    return http<BookingCreateResult>(`${BASE}/`, {
       method: "POST",
       body: payload,
     });
@@ -56,6 +63,46 @@ export const bookingsApi = {
     return http<BookingResponse>(`${BASE}/${id}/attendance`, {
       method: "PATCH",
       body: { status },
+    });
+  },
+};
+
+// ─── Pay-Per-Class Checkout API ───────────────────────────────────────────────
+
+export interface ClassPaymentPayload {
+  booking_id: number;
+  amount: number;
+  method: "cash" | "transfer" | "card_mock";
+  promo_code?: string;
+}
+
+export interface ClassPaymentResponse {
+  message: string;
+  data: {
+    id: number;
+    booking_id: number;
+    user_id: number;
+    amount: string;
+    method: string;
+    status: string;
+    reference_no: string;
+    paid_at: string;
+  };
+}
+
+export const classPaymentsApi = {
+  /**
+   * Pay for a pending_payment class booking.
+   * POST /api/v1/payments/class
+   *
+   * On success, the backend atomically:
+   *   1. Creates a Payment record linked to booking_id.
+   *   2. Updates the Booking status from 'pending_payment' → 'confirmed'.
+   */
+  processClassPayment(payload: ClassPaymentPayload) {
+    return http<ClassPaymentResponse>("/payments/class", {
+      method: "POST",
+      body: payload,
     });
   },
 };

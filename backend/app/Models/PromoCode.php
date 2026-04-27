@@ -20,11 +20,13 @@ class PromoCode extends Model
     protected $fillable = [
         'code',
         'trainer_id',
-        'required_plan_id',
+        'required_tier',
         'discount_amount',
         'discount_type',
         'max_discount_amount',
+        'min_spend_amount',
         'is_new_user_only',
+        'is_targeted',
         'is_active',
         'max_uses',
         'times_used',
@@ -34,10 +36,21 @@ class PromoCode extends Model
     protected $casts = [
         'is_active'           => 'boolean',
         'is_new_user_only'    => 'boolean',
+        'is_targeted'         => 'boolean',
         'discount_amount'     => 'decimal:2',
         'max_discount_amount' => 'decimal:2',
+        'min_spend_amount'    => 'decimal:2',
         'expires_at'          => 'datetime',
     ];
+
+    /**
+     * Users explicitly targeted by this promo code (if is_targeted = true).
+     */
+    public function targetUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'promo_code_targets')
+                    ->withTimestamps();
+    }
 
     /**
      * The trainer (User) who created this promo code. Null = admin-issued.
@@ -48,12 +61,11 @@ class PromoCode extends Model
     }
 
     /**
-     * The membership plan required to redeem this code. Null = open to everyone.
-     * Consumed from Member 4's MembershipPlan model — cross-module FK.
+     * The membership tier required to redeem this code. Null = open to everyone.
      */
-    public function requiredPlan(): BelongsTo
+    public function getRequiredTierAttribute($value)
     {
-        return $this->belongsTo(MembershipPlan::class, 'required_plan_id');
+        return $value;
     }
 
     /**

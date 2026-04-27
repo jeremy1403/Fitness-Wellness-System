@@ -118,7 +118,7 @@ function EcosystemBanner({
             <>
               <p className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                 <span className="text-yellow-500">👑</span>
-                {membership.plan?.name ?? "Active Plan"}
+                {membership.plan?.tier_name ? <span className="capitalize">{membership.plan.tier_name} Tier</span> : "Active Plan"}
               </p>
               <Badge className="mt-1 text-[10px] bg-teal-50 text-teal-700 border border-teal-200 font-mono">
                 ACTIVE
@@ -204,7 +204,7 @@ function VoucherCard({
 }) {
   const valid                = isPromoValid(promo);
   const alreadyUsed          = !!promo.is_already_used;
-  const tierBlocked          = promo.required_plan_id != null && promo.user_meets_tier_requirement === false;
+  const tierBlocked          = promo.required_tier != null && promo.user_meets_tier_requirement === false;
   const isPercentage         = promo.discount_type === "percentage";
   const usagePercent         =
     promo.max_uses != null
@@ -264,7 +264,7 @@ function VoucherCard({
             ) : tierBlocked ? (
               <Badge className="text-xs shrink-0 bg-purple-50 text-purple-700 border border-purple-200">
                 <Crown className="w-3 h-3 mr-1" />
-                {promo.required_plan_name ?? "Members Only"}
+                <span className="capitalize">{promo.required_tier_name ?? "Members Only"}</span>
               </Badge>
             ) : (
               <Badge variant="secondary" className="text-xs shrink-0">
@@ -280,7 +280,7 @@ function VoucherCard({
         </div>
 
         {/* Tier restriction notice */}
-        {promo.required_plan_id != null && (
+        {promo.required_tier != null && (
           <div
             className={`flex items-center gap-1.5 text-xs font-medium rounded-lg px-2.5 py-2 border ${
               tierBlocked
@@ -291,12 +291,12 @@ function VoucherCard({
             {tierBlocked ? (
               <>
                 <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                Requires <strong className="ml-1">{promo.required_plan_name}</strong> membership
+                Requires <strong className="ml-1 capitalize">{promo.required_tier_name}</strong> membership
               </>
             ) : (
               <>
                 <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                Your <strong className="mx-1">{promo.required_plan_name}</strong> plan unlocks this voucher
+                Your <strong className="mx-1 capitalize">{promo.required_tier_name}</strong> plan unlocks this voucher
               </>
             )}
           </div>
@@ -378,7 +378,7 @@ function VoucherCard({
         ) : tierBlocked ? (
           <div className="w-full text-sm font-semibold text-center py-2 rounded-lg bg-purple-50 text-purple-500 border border-purple-200 cursor-not-allowed">
             <Crown className="inline w-4 h-4 mr-1.5 mb-0.5" />
-            Requires {promo.required_plan_name} Plan
+            Requires <span className="capitalize">{promo.required_tier_name}</span> Plan
           </div>
         ) : effectively_valid ? (
           <Button

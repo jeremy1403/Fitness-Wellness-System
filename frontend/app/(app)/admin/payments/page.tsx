@@ -86,7 +86,7 @@ export default function AdminPaymentsPage() {
       (p.reference_no ?? "").toLowerCase().includes(term) ||
       (p.method ?? "").toLowerCase().includes(term) ||
       (p.status ?? "").toLowerCase().includes(term) ||
-      (p.membership?.plan?.name ?? "").toLowerCase().includes(term) ||
+      (p.membership?.plan?.tier_name ?? "").toLowerCase().includes(term) ||
       (p.user?.name ?? "").toLowerCase().includes(term) ||
       (p.user?.email ?? "").toLowerCase().includes(term)
     );
@@ -230,7 +230,7 @@ export default function AdminPaymentsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-slate-500">
-                        {payment.membership?.plan?.name ?? "-"}
+                        <span className="capitalize">{payment.membership?.plan?.tier_name ? `${payment.membership.plan.tier_name} Tier` : "-"}</span>
                       </TableCell>
                       <TableCell className="text-slate-500">
                         RM {payment.amount}
